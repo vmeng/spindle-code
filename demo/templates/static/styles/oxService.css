@@ -1,0 +1,173 @@
+/* header styling (in the new style, Aug 2008) */
+
+/* make room for the siteinfo header at the top of the page*/
+body
+{
+padding: 0px;
+margin:0px;
+padding-top: 12.5em;
+
+}
+div#content
+{
+padding-left: 7%;
+padding-right: 7%;
+margin:0px;
+
+
+}
+
+
+
+/* position the site-info div at the top of the page */
+
+
+#site-info
+{
+position: absolute;
+width: 100%;
+top: 0px;
+left: 0px;
+height: 116px;
+text-align: right;
+
+background: url(../images/header-bg.jpg) repeat-x 620px 0px ;
+
+/*
+border: 1px solid red;
+border-right: 0px solid red;
+margin-left: 620px;
+margin-top: 0px;
+margin-right: 0px;
+padding-bottom: 116px;
+padding-right: 400px;
+background-color: orange;
+display: block;
+background: url(../images/header-bg.png) no-repeat right 20px ;
+*/
+}
+
+
+
+
+div#site-info dl, div#site-info dl dd, div#site-info dt
+
+{
+margin: 0px;
+padding: 0px;
+}
+
+div#site-info dl dd#serviceName
+{
+
+/*
+for testing...
+
+
+border: 1px solid red;
+*/
+
+
+/* position the servicename text and make it the same size as the logo */
+position: absolute;
+display: block;
+top: 0px;
+left: 291px;
+height: 118px;
+width: 316px;
+
+background: url(../images/servicename.png) no-repeat 0px 0px;
+
+/* obscure the actual text */
+
+font-size: 0px;
+color: #fff;
+
+}
+
+
+
+div#site-info dl dd#institution a
+{
+
+
+position: absolute;
+top: 0px;
+left: 0px;
+
+
+/* position the institution link and make it the same size as the logo */
+
+display: block;
+height: 118px;
+width: 291px;
+background-image: url('../images/crest.png');
+background-color: #fff;
+background-repeat: no-repeat;
+background-position: 20px 19px ;
+
+/* obscure the actual text */
+
+font-size: 0px;
+color: #fff;
+text-decoration: none;
+padding: 0px;
+margin: 0px;
+border-style: none;
+line-height: 0px;
+
+
+/*
+for testing...
+
+
+border: 1px solid red;
+*/
+
+}
+
+div#site-info dl dd#unitName
+{
+position: absolute;
+top: 0px;
+left: 615px;
+display: block;
+height: 105px;
+width: 90px;
+background-image: url('../images/linacre.png');
+background-color: #fff;
+background-repeat: no-repeat;
+background-position: 0px 20px ;
+
+
+/* obscure the actual text */
+font-size: 0px;
+color: #fff;
+text-decoration: none;
+padding: 0px;
+margin: 0px;
+border-style: none;
+
+line-height: 0px;
+
+/*
+for testing...
+
+
+border: 1px solid red;
+*/
+}
+
+
+
+
+
+
+/* hide anything that's for non-visual exposition*/
+
+.nonvis-exposition
+{
+position: absolute;
+top: -1600px;
+left: -1600px;
+}

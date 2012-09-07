@@ -1,0 +1,35 @@
+{% extends "spindle/index.html" %}
+
+{% block content %}
+  <h2>Add new item</h2>
+  <div id="metadata" class="well">
+    <form method='post' enctype="multipart/form-data">
+        {% csrf_token %}      
+        <label>Name:</label>
+        {{ form.name.errors }}   
+        {{ form.name }}        
+        
+        <label>Video URL:</label>
+        {{ form.video_url.errors }}        
+        {{ form.video_url }}        
+
+        <label>Audio URL:</label>
+        {{ form.audio_url.errors }}        
+        {{ form.audio_url }}
+
+        <label></label>        
+        
+        <input class='btn' type='submit' value='Create item' />
+      </form>   
+  </div>
+
+  <h2>Get items from RSS</h2>
+  <div class='well'>
+    <p>Click below to search for new items in the RSS feed at <pre>{{ rss_url }}</pre> and add them to the system.</p>    
+    <p>Adding new items may take several seconds.</p>
+    <form method='post' action="{% url spindle.views.scrape %}">
+      {% csrf_token %} 
+      <input class='btn' type='submit' value='Get new items' />
+    </form>
+{% endblock %}
+

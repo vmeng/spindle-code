@@ -1,0 +1,89 @@
+/* Player positioning and sizing */
+#player {
+    position: relative;
+}
+
+video#player {
+    height: 40%;
+    width: 50%;
+    float: left;
+}
+
+audio#player {
+    margin-top: 2em;
+    width: 100%;
+}
+
+/* Button bar */
+#controls {
+    clear: both;
+}
+
+/* List of captions */
+#captionList {
+    height: 400px;
+    width: 95%;
+    overflow-y: scroll;
+}
+
+/* Caption container */
+.caption {
+    margin: 0;
+    padding: 4px;
+    clear: both;
+}
+
+.caption.unedited {
+    background: #ccc;
+}
+
+.caption.active { 
+    background-color: #ddf;
+}
+
+/* Elements inside the caption */
+
+/* Timecode */
+.caption .timecode {
+    width: 4em;
+    text-align: right;
+    float: left;
+}
+
+/* Caption text */
+.caption .caption-text {
+    width: 70%;
+    border: none;
+}
+
+.caption.active .caption-text {
+    color: blue;
+}
+
+/* Paragraph toggle */
+.caption .paragraph-toggle {
+    margin-top: -10px;    
+    /* Normally hidden, unless clicked or under the mouse */
+    visibility: hidden;
+}
+
+.caption .paragraph-toggle.active {
+    /* Clicked paragraph toggles remain visible */
+    visibility: visible;
+}
+
+.caption .speaker-selector {
+    width: 15%;
+    /* Normally hidden, unless a change of speaker or under the mouse */
+    visibility: hidden;
+}
+
+.caption .speaker-selector.speaker-change {
+    /* Speaker changes are visible */
+    visibility: visible;
+}
+
+.caption:hover .paragraph-toggle, .caption:hover .speaker-selector {
+    /* Make controls visible on mouse hover */
+    visibility: visible;
+}

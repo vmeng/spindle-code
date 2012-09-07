@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load sitetree spindle_extras %}
+
+{% block head %}
+  <script src="{{ STATIC_URL }}spindle/js/csrf.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/global.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/sprintf-0.6.js"></script>
+  <script src="{{ STATIC_PREFIX }}js/bootstrap-modal.js"></script>
+{% endblock %}
+
+{% block sidebar %}
+  {% sitetree_menu from "opmstree" include "spindle_root" template "sitetree/navlist.html" %}
+
+  {% if item %}  
+    {% sitetree_menu from "opmstree" include "spindle_item" template "sitetree/navlist.html" %}
+  {% endif %}
+
+  {% if track %}  
+    {% sitetree_menu from "opmstree" include "spindle_track" template "sitetree/navlist.html" %}
+  {% endif %}
+
+{% endblock %}          
+
+{% block content %}  
+{% endblock %}

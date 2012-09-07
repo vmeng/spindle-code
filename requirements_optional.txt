@@ -1,0 +1,17 @@
+distribute>=0.6.26
+django-debug-toolbar>=0.9.4
+django-extensions>=0.8
+ipython>=0.12
+nose==1.1.2
+numpy==1.6.1
+pygraphviz==1.1
+yolk==0.4.3
+IPy>=0.75
+PyYAML>=3.10
+apachelog==1.1
+django-chartit==0.1
+django-tables2>=0.11.0
+dnspython==1.10.0
+psycopg2>=2.4.5
+pygeoip==0.2.3
+xlrd>=0.7.7

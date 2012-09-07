@@ -1,0 +1,9 @@
+{% load sitetree %}
+            <ul class="nav">{% for sitetree_item in sitetree_items %}
+                    <li {% if sitetree_item.is_current %}class="active"{% endif %}>
+                        <a href="{% sitetree_url for sitetree_item %}" {% if sitetree_item.hint %}title="{{ sitetree_item.hint }}"{% endif %}>{{ sitetree_item.title_resolved }}</a>
+                    </li>
+                {% if sitetree_item.has_children %}
+                    {% sitetree_children of sitetree_item for menu template "sitetree/navbar-items.html" %}
+                {% endif %}
+            {% endfor %}</ul>

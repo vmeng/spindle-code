@@ -1,0 +1,37 @@
+{% extends "spindle/index.html" %}
+
+{% block content %}
+  <h2>Automatic transcription</h2>
+
+  <h4>{{ item.name }}</h4>
+<p class="url">{{ item.audio_url }}</p>
+<p class="url">{{ item.video_url }}</p>
+
+<div class="">
+  <div class="alert alert-info">
+    Click below to add this item to the queue of items to be
+    automatically transcribed. Automatic transcription takes
+    between three and five times the length of the item to
+    finish. Transcription requests are queued and executed in
+    order.
+  </div>
+  
+  <div class="alert">
+    <strong>Warning:</strong> Automatic transcription will <em>overwrite</em>
+    any existing captions for this item.        
+  </div>      
+
+  <form method='post'>
+    {% csrf_token %} 
+    <label>Transcription service to use:</label>
+    <select name="engine">
+      {% for key, data in engines.items %}
+        <option value="{{ key }}">{{ data.name }}</option>
+      {% endfor %}  
+    </select> 
+      
+    <input class='btn' type='submit' value='Transcribe item' />
+  </form>
+</div>
+</div>
+{% endblock %}

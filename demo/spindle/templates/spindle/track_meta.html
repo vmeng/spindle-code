@@ -1,0 +1,16 @@
+{% extends "spindle/index.html" %}
+{% load sitetree spindle_extras %}
+
+{% block content %}
+
+  {% sitetree_menu from "opmstree" include "this-siblings" template "spindle/tab_bar.html" %}            
+
+  <form method='post'>
+    {% csrf_token %}      
+    <h2>Track details</h2>
+    <div id="metadata" class="well">
+      {{ form.as_p }}            
+      <input class='btn' type='submit' name='update_track' value='Update track' />
+    </div>
+  </form> 
+{% endblock %}  

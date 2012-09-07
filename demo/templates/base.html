@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static sitetree %}
+{% get_static_prefix as STATIC_PREFIX %}
+<head>
+    <meta charset="utf-8">
+    <title>Spindle Demo: {% sitetree_page_title from "opmstree" %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <link href="{{ STATIC_PREFIX }}css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+        .sidebar-nav {
+            padding: 9px 0;
+        }
+        @media print {
+            .noprint { display: none; }
+        }
+    </style>
+    <link href="{{ STATIC_PREFIX }}css/datepicker.css" rel="stylesheet">
+    <link href="{{ STATIC_PREFIX }}css/timepicker.css" rel="stylesheet">
+    <link href="{{ STATIC_PREFIX }}css/bootstrap-responsive.css" rel="stylesheet">
+
+    <!-- The HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link rel="shortcut icon" href="{{ STATIC_PREFIX }}ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="{{ STATIC_PREFIX }}ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="{{ STATIC_PREFIX }}ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="{{ STATIC_PREFIX }}ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="{{ STATIC_PREFIX }}ico/apple-touch-icon-57-precomposed.png">
+
+    <!-- Javascript ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+    <script src="{{ STATIC_PREFIX }}scripts/jquery.cookie.js"></script>
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-transition.js"></script>#}
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-alert.js"></script>#}
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-modal.js"></script>#}
+    <script src="{{ STATIC_PREFIX }}js/bootstrap-collapse.js"></script>
+    <script src="{{ STATIC_PREFIX }}js/bootstrap-datepicker.js"></script>
+    <script src="{{ STATIC_PREFIX }}js/bootstrap-dropdown.js"></script>
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-scrollspy.js"></script>#}
+    <script src="{{ STATIC_PREFIX }}js/bootstrap-tab.js"></script>
+    <script src="{{ STATIC_PREFIX }}js/bootstrap-timepicker.js"></script>
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-tooltip.js"></script>#}
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-popover.js"></script>#}
+    <script src="{{ STATIC_PREFIX }}js/bootstrap-button.js"></script>
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-carousel.js"></script>#}
+    {#<script src="{{ STATIC_PREFIX }}js/bootstrap-typeahead.js"></script>#}
+
+    {% block head %}
+    {% endblock %}
+</head>
+
+<body>
+<div class="navbar noprint">
+    <div class="navbar-inner">
+        <div class="container-fluid">
+            <a class="brand" href="/">Spindle</a>
+            {% sitetree_menu from "opmstree" include "trunk" template "sitetree/navbar.html" %}
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row-fluid">
+        <div class="span2">
+            <div class="well sidebar-nav noprint">
+                {% block sidebar %}
+                {% sitetree_menu from "opmstree" include "trunk" template "sitetree/navlist.html" %}
+                {% endblock %}
+            </div><!--/.well -->
+            {% if user.username %}
+                <a href="/logout/"><div class="btn-success noprint" style="padding: 3px 15px;" >Logout <i>{{ user }}</i></div></a>
+            {% endif %}
+        </div><!--/span-->
+        <div class="span10">
+            <div class="noprint">
+                {% sitetree_breadcrumbs from "opmstree" template "sitetree/breadcrumbs.html"%}
+            </div>
+            {% block content %}
+            <div class="hero-unit">
+                <h1>Hello, world!</h1>
+                <p>Some form of highlighted content, or snazzy graph wants to be appearing up here...</p>
+                <p><a class="btn btn-primary btn-large">Learn more &raquo;</a></p>
+            </div>
+            <div class="row-fluid">
+                <div class="span4">
+                    <h2>Analytics</h2>
+                    <p>Basic dashboard like stats for this module. Donec id elit non mi porta gravida at eget metus.
+                        Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa
+                        justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+                    <p><a class="btn" href="#">View details &raquo;</a></p>
+                </div><!--/span-->
+                <div class="span4">
+                    <h2>Monitoring</h2>
+                    <p>Basic dashboard like stats for this module. Donec id elit non mi porta gravida at eget metus.
+                        Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa
+                        justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+                    <p><a class="btn" href="#">View details &raquo;</a></p>
+                </div><!--/span-->
+                <div class="span4">
+                    <h2>Files and Feeds</h2>
+                    <p>Basic dashboard like stats for this module. Donec id elit non mi porta gravida at eget metus.
+                        Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa
+                        justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui. </p>
+                    <p><a class="btn" href="#">View details &raquo;</a></p>
+                </div><!--/span-->
+            </div><!--/row-->
+            {% endblock %}
+        </div><!--/span-->
+    </div><!--/row-->
+
+    <hr>
+
+    <footer>
+        <p>&copy; <a href="http://www.oucs.ox.ac.uk/">Oxford University Computing Services</a> 2012</p>
+    </footer>
+
+</div><!--/.fluid-container-->
+</body>
+</html>

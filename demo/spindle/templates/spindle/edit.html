@@ -1,0 +1,126 @@
+{% extends "spindle/index.html" %}
+{% load sitetree %}
+{% block head %}
+  {{ block.super }}  
+  <link rel='stylesheet' href='{{ STATIC_URL }}spindle/css/editor.css' />
+
+  <script src="{{ STATIC_URL }}spindle/js/underscore.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/backbone.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/backbone-relational.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/models.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/editor.js"></script>
+  <script src="{{ STATIC_URL }}spindle/js/caption.js"></script>
+
+  <script>
+    SPINDLE.init = { item: new Item({ pk: {{ item.id }} }),
+    track: new Track({ pk: {{ track.id }} }) };
+  </script>
+{% endblock %}
+
+{% block content %}  
+
+  {% sitetree_menu from "opmstree" include "this-siblings" template "spindle/tab_bar.html" %}
+
+  <h3>{{ item.name }}</h3>
+
+  {% if item.video_url %}
+    <video id="player" controls>
+      <source src="{{ item.video_url }}" />
+      <track kind="captions"
+             src="{% url spindle_export_text track.id %}"
+             srclang="en"
+             label="English"
+             default>
+    </video>
+  {% elif item.audio_url %}
+    <audio id="player" controls>
+      <source src="{{ item.audio_url }}" />
+      <track kind="captions"
+             src="{% url spindle_export_vtt track.id %}"
+             srclang="en"
+             label="English"
+             default>
+    </audio>             
+  {% else %}             
+    <p>Error: No audio or video found for this item!</p>
+  {% endif %}
+
+  <div id="controls">
+    <p>Status: <span id="stats">not loaded.</span></p>
+    <div class="btn-toolbar">
+      <div class="btn-group">
+        <button class="btn prev-unedited"><i class="icon-backward"></i> Previous unedited</button>
+        <button class="btn next-unedited">Next unedited <i class="icon-forward"></i></button>          
+      </div>
+
+      <div class="btn-group">
+        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+          Playback speed
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu" id="speed-menu">
+          <li><a href="#" data-speed="0.5">Half speed</a></li>
+          <li><a href="#" data-speed="0.6">.6x normal speed</a></li>
+          <li><a href="#" data-speed="0.75">.75x normal speed</a></li>
+          <li><a href="#" data-speed="1">Normal speed</a></li>
+          <li><a href="#" data-speed="1.25">1.25x normal speed</a></li>
+          <li><a href="#" data-speed="1.5">1.5x normal speed</a></li>
+        </ul> 
+      </div>  
+      
+      <div class="btn-group pull-right">
+        <button class="btn btn-default disabled" id="save-button">Save</button>
+      </div>
+      
+      <div class="btn-group pull-right">
+        <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+          Export
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+          <li><a class="export-link" href="{% url spindle_export_vtt track.id %}">VTT</a></li>
+          <li><a class="export-link" href="{% url spindle_export_html track.id %}">HTML</a></li>
+          <li><a class="export-link" href="{% url spindle_export_text track.id %}">Plain text</a></li>
+          <li><a class="export-link" href="{% url spindle_export_xml track.id %}">XML</a></li>
+        </ul>           
+      </div> 
+    </div>
+  </div>
+
+  <div id="captionList"></div>
+
+  {# Modal dialog #}    
+  <div class="modal hide" id="edit-speaker-modal">
+    <div class="modal-header">
+      <button type="button" class="close" data-dismiss="modal">×</button>
+      <h3>Edit speaker names</h3>
+    </div>
+    <div class="modal-body">
+      <p>Rename speaker:</p>        
+      <span id="edit-speaker-select"></span>
+      <label>to:</label>        
+      <input type="text" id="edit-speaker-name" />
+      <a href="#" class="btn" id="rename-speaker-button">Rename</a> 
+      <hr/>
+      <p>Add new speaker:</p>
+      <input type="text" id="new-speaker-name" />
+      <a href="#" class="btn" id="add-speaker-button">Add</a> 
+    </div>
+    <div class="modal-footer">
+      <a href="#" class="btn" data-dismiss="modal">Close</a>
+    </div>
+  </div>
+  
+  {# Templates for javascript use -- not rendered #}
+  <div style="display: none">
+
+    <div id="caption-view-template" class="caption">
+      <div class="timecode"></div>
+      <input type="button" class="paragraph-toggle btn begin-para" value="&para;" /> 
+      <select class="speaker-selector"></select>
+      <input type="text" class="caption-text" />
+    </div>
+    
+  </div>
+  
+{% endblock content %}

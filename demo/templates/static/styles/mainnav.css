@@ -1,0 +1,193 @@
+/*
+
+This stylesheet provides styling for the main navigation elements in your site
+
+*/
+
+#mainnav, #mainnav2
+{
+    height: 2em;
+    position: absolute;
+    top:8.5em;
+    left:0px;
+    width: 100%;
+    border-width: 0px;
+    background-color: #00274F;
+    letter-spacing: 0.15em;
+}
+#mainnav2 
+{
+    top:10.5em;
+    background-color: #ccc;
+}
+
+#mainnav h2, #mainnav2 h3
+{
+    position: absolute;
+    left: -2100px;
+}
+
+#mainnav ul, #mainnav2 ul
+{
+    width: 50em;
+    padding:0;
+    padding-left: 1em;
+    display:block;
+    margin:0;  
+}
+
+#mainnav ul li, #mainnav2 ul li
+{
+    list-style-type: none;
+    height:2em;
+    display: inline;
+    padding:0;
+    margin:0;
+    font-weight: bold;
+}
+
+#mainnav ul li a, #mainnav ul li a.currentsection, #mainnav ul li span.youarehere,
+#mainnav2 ul li a, #mainnav2 ul li a.currentsection, #mainnav2 ul li span.youarehere
+{ 
+    height:2em;
+    float:left;
+    white-space:nowrap;
+    border:none;
+    font-size:0.95em;
+    line-height: 1.9em;
+    padding: 0px;
+    padding-bottom: 0.2em; /* Remember that font-size redefines what size em is, thus this is 0.2, rather than 0.1 - I think */
+    padding-left: 1em;
+    padding-right: 1em;
+    text-decoration:none;
+    color:#fff;
+}
+#mainnav2 ul li a, #mainnav2 ul li a.currentsection, #mainnav2 ul li span.youarehere
+{
+    color:#333;
+}
+
+
+
+#mainnav ul li a:hover, #mainnav ul li a:focus,
+#mainnav2 ul li a:hover, #mainnav2 ul li a:focus
+{
+    color:#fff;
+    background-color: #666;
+}
+
+#mainnav ul li span.youarehere, #mainnav ul li a.currentsection, #mainnav ul li a.selected
+{
+    color: #333;
+    background-color: #ccc;
+}
+#mainnav2 ul li span.youarehere, #mainnav2 ul li a.currentsection, #mainnav2 ul li a.selected
+{
+    color: #333;
+    background-color: #fff;
+}
+
+
+
+
+
+
+/* styles for sub nav  */
+
+div#additional ul
+{
+    padding: 0px;
+    margin: 5px;
+    margin-left: 10px;
+    margin-top: 20px;
+    margin-bottom: 30px;
+    border-width: 0px;
+    border-bottom: 2px solid #ccc;
+    border-top: 2px solid #ccc;
+    padding-bottom: 0px;
+}
+
+div#additional ul li
+{
+    padding: 0px;
+    margin: 0px;
+    padding-bottom: 0px;    
+    margin-bottom:0px;
+    list-style: none;
+    border-width: 0px;
+}
+
+div#additional ul li a
+{
+    background-color: #fff;
+    color: #000;
+}
+
+ div#additional ul li.currentsection a
+{
+    background-color: #eee;
+    color: #000;
+    border-bottom: 1px solid #ccc;
+}
+
+div#additional ul li a:hover, div#additional ul li a:focus
+{
+    background-color: #666;
+    color: #fff;
+}
+
+
+div#additional ul li span.youarehere
+{
+    background-color: #ddd;
+    color: #000;
+}
+
+
+
+div#additional ul li a, div#additional ul li a#currentsection, div#additional ul li span.youarehere
+{
+    text-align: right;   
+    display: block;
+    
+    border-width: 0px;
+    border-top: 1px solid #ccc;
+    
+    font-size:0.95em;
+    padding: 0.7em 0.7em;
+    text-decoration: none;
+}
+
+
+div#additional ul li a#currentsection
+{
+
+}
+
+div#additional ul li# a, div#additional ul li, div#additional ul li span.youarehere
+{
+    border-top: 1px solid #ccc;
+}
+
+
+div#additional ul li ul li a, div#additional ul li ul li span.youarehere
+{
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-weight: normal;
+    border-width: 0px ;
+    padding-right: 1.8em;
+}
+
+
+div#additional ul li.currentsection
+{
+    border-left: 1px solid #ccc;
+    border-right: 1px solid #ccc;
+}
+
+div#additional ul li ul
+{
+    margin: 0px;
+    padding: 0px;
+}

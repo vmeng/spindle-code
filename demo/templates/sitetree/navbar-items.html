@@ -1,0 +1,4 @@
+                    {% load sitetree %}<!-- Navlist items -->
+                    {% for sitetree_item in sitetree_items %}<li {% if sitetree_item.is_current or sitetree_item.in_current_branch %}class="{{ sitetree_item.is_current|yesno:"active," }}{{ sitetree_item.in_current_branch|yesno:" active," }}"{% endif %}>
+                    <a href="{% sitetree_url for sitetree_item %}"{% if sitetree_item.hint %} title="{{ sitetree_item.hint }}"{% endif %}>{{ sitetree_item.title_resolved }}</a>
+                    </li>{% endfor %}
