@@ -37,7 +37,7 @@ class Command(NoArgsCommand):
                                    filename)
             outfile = open(dirname, "w")
 
-            if(item.find('currentTranscript')):
+            if(item.find('currentTranscript') is not None):
                 print dirname, "\n\n"
                 script_url = item.find('currentTranscript')[0].attrib['href']
                 resp = requests.get(script_url, auth = auth)
