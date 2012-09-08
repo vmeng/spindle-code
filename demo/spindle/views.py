@@ -232,22 +232,36 @@ def item_add_track(request, item_id):
             upload = request.FILES['caption_file']
             
             if file_type == 'srt':            
-                script = vtt.read(upload)                    
+                speakers = []
+                clips = vtt.read(upload) 
             elif file_type == 'xmp':
-                script = xmp.read(upload)
+                speakers = []
+                clips = xmp.read(upload)
             elif file_type == 'koemei':
                 xml = ET.parse(upload)
                 objects = koemei.reader.read(xml)
-                script = objects['speakers']
-                script.extend(objects['clips'])
+                speakers = objects['speakers']
+                clips = objects['clips']
+            elif file_type == 'sphinx':
+                speakers = []
+                clips = sphinx.reader.read_clips(upload)
             else:
                 raise Exception('Unrecognised caption file format')
             
             track = Track(item=item, name=upload.name)
             track.save()
-            for obj in script:
-                obj.track = track
-                obj.save()
+
+            for speaker in speakers:
+                speaker.track = track
+                speaker.save()
+
+            for clip in clips:
+                clip.track = track
+                # Next line is necessary to save the foreign key
+                # correctly. Sigh.
+                clip.speaker = clip.speaker
+                clip.save()
+
         return redirect(edit_track, track_id=track.id)
     elif 'request_transcript' in request.POST:
         request_transcript_form = RequestTranscriptForm(request.POST)
