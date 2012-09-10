@@ -10,7 +10,12 @@ It has been used during the [SPINDLE]
 
 **Usage:** 
     
-    python keywords.py &lt;text.txt&gt;
+    python keywords.py text.txt
+
+or 
+
+    from keywords import keywords_and_ngrams
+
 
 **Output:**
 
