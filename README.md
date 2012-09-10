@@ -14,7 +14,7 @@ It has been used during the [SPINDLE]
 
 **Output:**
 
-
+List containing two lists of tuples. The first list of tuples contains keywords, log-likelihood values. The second list contains bigrams, number of appearances values. 
     keyword-0 ll-0
     keyword-1 ll-1
     keyword-2 ll-2
@@ -22,6 +22,22 @@ It has been used during the [SPINDLE]
     bigram-0 n-appearances-bigram-0
     bigram-1 n-appearances-bigram-1
     bigram-2 n-appearances-bigram-2
+
+**Example**
+
+  [[["automatic", 154.36391852338383], 
+  ["keywords", 100.22612939881635], 
+  ["transcriptions", 71.04632660561263], 
+  ["corpus", 54.20602606031698], 
+  ["generated", 52.54525739261641], 
+  ["word", 43.869201333759946], 
+  ["keyword", 38.434091570196095], 
+  ["reference", 27.60386703890638], 
+  ["accuracy", 26.693961750667555], 
+  ["frequency", 26.58439010818277], 
+  ...
+  ], [[["automatic", "transcriptions"], 3]]]
+
 
 
 **Parameters**
