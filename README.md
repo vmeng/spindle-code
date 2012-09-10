@@ -19,7 +19,7 @@ or
 
 **Output:**
 
-JSON list object containing two lists of tuples. The first list of tuples contains keywords, log-likelihood values. The second list contains bigrams, number of appearances values. 
+JSON list object containing two lists of tuples. The first list of tuples contains keywords, log-likelihood values. The second list of tuples contains bigrams, number of appearances values. 
 
     keyword-0 ll-0
     keyword-1 ll-1
@@ -31,7 +31,7 @@ JSON list object containing two lists of tuples. The first list of tuples contai
 
 **Example**
 
-From the Automatic Keyword Generation from Automatic Speech-to-Text Transcriptions blog post (http://blogs.oucs.ox.ac.uk/openspires/2012/06/29/automatic-keyword-generation-from-automatic-speech-to-text-transcriptions/):
+From the [Automatic Keyword Generation from Automatic Speech-to-Text Transcriptions blog post] (http://blogs.oucs.ox.ac.uk/openspires/2012/06/29/automatic-keyword-generation-from-automatic-speech-to-text-transcriptions/):
 
     [[["automatic", 154.36391852338383], 
     ["keywords", 100.22612939881635], 
