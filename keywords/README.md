@@ -14,12 +14,11 @@ It has been used during the [SPINDLE]
 
 or 
 
-    from keywords import keywords_and_ngrams
-
+    >> from keywords import keywords_and_ngrams
 
 **Output:**
 
-JSON list object containing two lists of tuples. The first list of tuples contains keywords, log-likelihood values. The second list of tuples contains bigrams, number of appearances values. 
+List object containing two lists of tuples. The first list of tuples contains keywords, log-likelihood values. The second list of tuples contains bigrams, number of appearances values. 
 
     keyword-0 ll-0
     keyword-1 ll-1
