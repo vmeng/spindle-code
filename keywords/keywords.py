@@ -17,7 +17,11 @@ def keywords_and_ngrams(input, nKeywords=100, thresholdLL=19, nBigrams=25, thres
     fdistText = defaultdict(int)
     sumText = 0
     listWords = []
-   
+    listSentences = []
+    if isinstance(input,str):
+        listSentences = [input]
+    else:
+        listSentences = input
     for line in input:
         for w in line.split():
             w = w.lower()
