@@ -14,7 +14,7 @@ It has been used during the [SPINDLE]
 
 or 
 
-    >> from keywords import keywords_and_ngrams
+    >>> from keywords import keywords_and_ngrams
 
 **Output:**
 
