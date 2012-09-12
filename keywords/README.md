@@ -1,6 +1,6 @@
 ## Introduction
 
-Keywords.py is a python script developed during the [SPINDLE project](http://blogs.oucs.ox.ac.uk/openspires/category/spindle/)that generates keywords from a text. 
+Keywords.py is a python script developed during the [SPINDLE project](http://blogs.oucs.ox.ac.uk/openspires/category/spindle/) that generates keywords from a text. 
 It has been used during the [SPINDLE] 
 (http://openspires.oucs.ox.ac.uk/spindle/) project to [generate keywords
  from automatic transcriptions] 
