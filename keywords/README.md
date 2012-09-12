@@ -67,4 +67,10 @@ You could use any other word frequencies obtained from a different corpus.
 **stopwords.py**
 
 Keywords.py expects stopwords.py to be in the same directory. The stopwords.py script contains a list of stopwords (words that are too common to be considered keywords). You can add or remove any word adding it or deleting it from the list. 
-        
+   
+   
+## Further information
+
+Please check the following blog post [SPINDLE Automatic Keyword Generation: Step by Step] (http://blogs.oucs.ox.ac.uk/openspires/2012/09/12/spindle-automatic-keyword-generation-step-by-step/).
+
+     
