@@ -6,8 +6,6 @@ It has been used during the [SPINDLE]
  from automatic transcriptions] 
 (http://blogs.oucs.ox.ac.uk/openspires/2012/09/12/spindle-automatic-keyword-generation-step-by-step/).
  
-
-
 ## How to use it
 
 **Usage:** 
@@ -109,7 +107,7 @@ We include in the repository the automatic transcription of the podcast [Global 
 
 Keywords.py expects bnc.py to be in the same directory. The bnc.py script contains a list of word frequencies obtained from the spoken part of the British National Corpus (BNC) and the total number of words of the spoken part of the BNC. 
 
-You could use any other word frequencies obtained from a different corpus. 
+You could use the script with any other word frequencies obtained from a different corpus. 
 
 **stopwords.py**
 
