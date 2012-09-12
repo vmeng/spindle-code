@@ -5,7 +5,6 @@
 from collections import defaultdict
 import sys,os
 import math
-import json
 from stopwords import stopwords as my_stopwords
 from bnc import fdistBNC, sumBNC
 
@@ -73,6 +72,9 @@ if __name__=="__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python %s <text.txt>\n" % (sys.argv[0],))
     else:
-        d = keywords_and_ngrams(open(sys.argv[1],"r").readlines(), 100, 19, 25, 2)
-        print json.dumps(d)
-
+        (listK, listB) = keywords_and_ngrams(open(sys.argv[1],"r").readlines(), 100, 19, 25, 2)
+        for k, v in listK:
+            print "%s: %f"% (k,v)
+        print
+        for k, v in listB:
+            print "%s: %d"% (" ".join(k),v)
