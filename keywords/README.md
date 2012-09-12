@@ -37,56 +37,59 @@ We include in the repository the automatic transcription of the podcast [Global 
 
         python keywords.py 01_crunch-medium-audio_automatic_transcription.txt
 
-Keywords Generated (word: Log-likelihood)
+**Keywords Generated** (word: Log-likelihood)
 
-banks : 141.12175627
-crisis : 73.3976004078
-companies : 67.8498685789
-assets : 61.8910800051
-haiti : 47.7956942776
-interest : 41.3390170289
-credit : 39.6149918395
-crunch : 35.9334074944
-senate : 32.4501608202
-profited : 30.625124757
-sitcom : 30.625124757
-ansa : 30.625124757
-nineteen : 29.0864140753
-economy : 28.6440250819
-nineties : 27.5138518651
-haitian : 26.8069860979
-sanctioning : 26.8069860979
-center : 26.8069860979
-regulate : 25.4923775621
-hashing : 25.0818400138
-haitians : 25.0818400138
-stimulus : 24.5089608603
-united : 24.1102094531
-successful : 21.8091735308
-financial : 21.7481087661
-key : 21.6791751296
-caught : 21.1648006228
-eases : 21.0970376283
-bankruptcy : 21.0970376283
-rates : 21.0105869453
-kind : 20.8040324729
-cited : 20.6246470912
-backs : 19.9877139071
-borrowing : 19.9877139071
-crimes : 19.5817617075
-countries : 19.5490491082
-essentially : 19.334521352
-fiscal : 19.1532240523
-Collocations Generated (collocation: #appearances)
+        banks : 141.12175627
+        crisis : 73.3976004078
+        companies : 67.8498685789
+        assets : 61.8910800051
+        haiti : 47.7956942776
+        interest : 41.3390170289
+        credit : 39.6149918395
+        crunch : 35.9334074944
+        senate : 32.4501608202
+        profited : 30.625124757
+        sitcom : 30.625124757
+        ansa : 30.625124757
+        nineteen : 29.0864140753
+        economy : 28.6440250819
+        nineties : 27.5138518651
+        haitian : 26.8069860979
+        sanctioning : 26.8069860979
+        center : 26.8069860979
+        regulate : 25.4923775621
+        hashing : 25.0818400138
+        haitians : 25.0818400138
+        stimulus : 24.5089608603
+        united : 24.1102094531
+        successful : 21.8091735308
+        financial : 21.7481087661
+        key : 21.6791751296
+        caught : 21.1648006228
+        eases : 21.0970376283
+        bankruptcy : 21.0970376283
+        rates : 21.0105869453
+        kind : 20.8040324729
+        cited : 20.6246470912
+        backs : 19.9877139071
+        borrowing : 19.9877139071
+        crimes : 19.5817617075
+        countries : 19.5490491082
+        essentially : 19.334521352
+        fiscal : 19.1532240523
 
-[interest rates] : 5
-[financial crisis] : 4
-[wall street] : 3
-[nineteen nineties] : 3
-[credit crunch] : 3
-[british government] : 3
-Word Cloud (using Wordle)
-![Word Cloud](http://blogs.oucs.ox.ac.uk/openspires/files/2012/09/keywords_script_example_snapshot.jpg)
+**Collocations Generated** (collocation: #appearances)
+
+        [interest rates] : 5
+        [financial crisis] : 4
+        [wall street] : 3
+        [nineteen nineties] : 3
+        [credit crunch] : 3
+        [british government] : 3
+
+**Word Cloud** (using Wordle)
+
+        ![Word Cloud](http://blogs.oucs.ox.ac.uk/openspires/files/2012/09/keywords_script_example_snapshot.jpg)
 
 **Parameters**
 
