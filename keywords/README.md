@@ -30,10 +30,13 @@ List object containing two lists of tuples. The first list of tuples contains ke
     bigram-1 n-appearances-bigram-1
     bigram-2 n-appearances-bigram-2
 
-**Example**
-Example of Automatic Keywords Generation
+## Example
 
-We used the keyword generation tool to generate the relevant keywords and bigrams of the automatic transcription of the podcast [Global Recession: How Did it Happen?] (http://podcasts.ox.ac.uk/global-recession-how-did-it-happen-audio) (Correct Words = 32.9%). We selected a bad automatic transcription to show that even with a low number of correct words we can extract some relevant keywords and bigrams automatically.
+We include in the repository the automatic transcription of the podcast [Global Recession: How Did it Happen?] (http://podcasts.ox.ac.uk/global-recession-how-did-it-happen-audio) (Correct Words = 32.9%). We selected a bad automatic transcription to show that even with a low number of correct words we can extract some relevant keywords and bigrams automatically.
+
+
+        python keywords.py 01_crunch-medium-audio_automatic_transcription.txt
+
 Keywords Generated (word: Log-likelihood)
 
 banks : 141.12175627
