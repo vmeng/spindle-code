@@ -54,7 +54,7 @@ def keywords_and_ngrams(input, nKeywords=100, thresholdLL=19, nBigrams=25, thres
     sortedLL = sorted(dicLL, key=dicLL.__getitem__, reverse=True)
     listKeywords = [(k, dicLL[k]) for k in sortedLL if k.isalpha() and dicLL[k] > thresholdLL]
 
-    keywords = [keyw[0] for keyw in listKeywords]
+    keywords = dicLL.keys()
     counts = defaultdict(int)
     for ng in ngrams(listWords, 2):
         counts[ng] += 1
