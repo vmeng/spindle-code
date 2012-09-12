@@ -31,23 +31,59 @@ List object containing two lists of tuples. The first list of tuples contains ke
     bigram-2 n-appearances-bigram-2
 
 **Example**
+Example of Automatic Keywords Generation
 
-From the [Automatic Keyword Generation from Automatic Speech-to-Text Transcriptions blog post] (http://blogs.oucs.ox.ac.uk/openspires/2012/06/29/automatic-keyword-generation-from-automatic-speech-to-text-transcriptions/):
+We used the keyword generation tool to generate the relevant keywords and bigrams of the automatic transcription of the podcast [Global Recession: How Did it Happen?] (http://podcasts.ox.ac.uk/global-recession-how-did-it-happen-audio) (Correct Words = 32.9%). We selected a bad automatic transcription to show that even with a low number of correct words we can extract some relevant keywords and bigrams automatically.
+Keywords Generated (word: Log-likelihood)
 
-    [[["automatic", 154.36391852338383], 
-    ["keywords", 100.22612939881635], 
-    ["transcriptions", 71.04632660561263], 
-    ["corpus", 54.20602606031698], 
-    ["generated", 52.54525739261641], 
-    ["word", 43.869201333759946], 
-    ["keyword", 38.434091570196095], 
-    ["reference", 27.60386703890638], 
-    ["accuracy", 26.693961750667555], 
-    ["frequency", 26.58439010818277], 
-    ...
-    ], [[["automatic", "transcriptions"], 3]]]
+banks : 141.12175627
+crisis : 73.3976004078
+companies : 67.8498685789
+assets : 61.8910800051
+haiti : 47.7956942776
+interest : 41.3390170289
+credit : 39.6149918395
+crunch : 35.9334074944
+senate : 32.4501608202
+profited : 30.625124757
+sitcom : 30.625124757
+ansa : 30.625124757
+nineteen : 29.0864140753
+economy : 28.6440250819
+nineties : 27.5138518651
+haitian : 26.8069860979
+sanctioning : 26.8069860979
+center : 26.8069860979
+regulate : 25.4923775621
+hashing : 25.0818400138
+haitians : 25.0818400138
+stimulus : 24.5089608603
+united : 24.1102094531
+successful : 21.8091735308
+financial : 21.7481087661
+key : 21.6791751296
+caught : 21.1648006228
+eases : 21.0970376283
+bankruptcy : 21.0970376283
+rates : 21.0105869453
+kind : 20.8040324729
+cited : 20.6246470912
+backs : 19.9877139071
+borrowing : 19.9877139071
+crimes : 19.5817617075
+countries : 19.5490491082
+essentially : 19.334521352
+fiscal : 19.1532240523
+Collocations Generated (collocation: #appearances)
 
-
+[interest rates] : 5
+[financial crisis] : 4
+[wall street] : 3
+[nineteen nineties] : 3
+[credit crunch] : 3
+[british government] : 3
+Word Cloud (using Wordle)
+![Word Cloud](http://blogs.oucs.ox.ac.uk/openspires/files/2012/09/keywords_script_example_snapshot.jpg)
 
 **Parameters**
 
