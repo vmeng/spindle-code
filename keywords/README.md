@@ -21,7 +21,7 @@ or
 
 **Input:**
 
-The keywords.py script expect the text file to be in plain text format. If you have a transcription in another format, XMP for example, you should convert it to plain text to use keywords.py.  
+The keywords.py script expect the text file to be in plain text format. If you have a transcription in another format, XMP for example, you should convert it to plain text before using keywords.py.  
 
 **Output:**
 
