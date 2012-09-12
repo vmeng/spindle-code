@@ -120,6 +120,10 @@ Keywords.py expects stopwords.py to be in the same directory. The stopwords.py s
 
 Please check the following blog post [SPINDLE Automatic Keyword Generation: Step by Step] (http://blogs.oucs.ox.ac.uk/openspires/2012/09/12/spindle-automatic-keyword-generation-step-by-step/).
 
+## Use cases
+
+The keywords.py script can be used as a stand-alone application or as a module importing it into your python code. It can also be used within a web framework. 
+
 ## Tags
 
  #spindle #openspires #ukoer #oerri 
