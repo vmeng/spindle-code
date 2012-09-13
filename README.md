@@ -89,7 +89,18 @@ outside the scope of this document.
 
 - Download and install the source version of [CMU Sphinx4](http://sourceforge.net/projects/cmusphinx/files/sphinx4/1.0%20beta6/sphinx4-1.0beta6-src.zip/download).
 - Download HUB4 [acoustic](http://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/US%20English%20HUB4%20Acoustic%20Model/) and [language models](http://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/US%20English%20HUB4%20Language%20Model/).
+- Modify Transcriber.java in src/apps/edu/cmu/sphinx/demo/transcriber/Transcriber.java to show the time stamps for each word in the automatic transcription.
 
+    Original:
+    
+            String resultText = result.getBestResultNoFiller();
+            System.out.println(resultText);
+
+    Modified:
+    
+            if (result != null){
+                System.out.println(result.getTimedBestResult(true, true));
+            }
 
 See `SPINDLE_SPHINX_DIRECTORY` variable.
 
