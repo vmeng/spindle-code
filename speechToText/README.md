@@ -1,6 +1,6 @@
 ### SPINDLE Speech to text automatic transcription
 
-Please find below the instructions to set up CMU Sphinx4 in Large Vocabulary Continuous Speech Recognition mode. We used different models for our automatic transcription such as a British English dictionary. If you would be interested in it please get in contact with us. 
+Please find below the instructions to set up CMU Sphinx4 in Large Vocabulary Continuous Speech Recognition mode. 
 
 - Download and install the source version of [CMU Sphinx4](http://sourceforge.net/projects/cmusphinx/files/sphinx4/1.0%20beta6/sphinx4-1.0beta6-src.zip/download) to $SPHINX_INSTALL_DIRECTORY. Instructions can be found at their [website](http://cmusphinx.sourceforge.net/wiki/sphinx4:howtobuildand_run_sphinx4) and here is the access to their [forums](http://cmusphinx.sourceforge.net/wiki/communicate/).
 - Download HUB4 [acoustic](http://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/US%20English%20HUB4%20Acoustic%20Model/) and [language models](http://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/US%20English%20HUB4%20Language%20Model/).
@@ -27,12 +27,17 @@ Please find below the instructions to set up CMU Sphinx4 in Large Vocabulary Con
 
         java -mx800m -jar bin/Transcriber.jar file.wav
 
-- NOTE: the audio .wav file should be 16khz, 16-bit, 1 channel, little-endian signed integer (lpcm)
+- The audio .wav file should be 16khz, 16-bit, 1 channel, little-endian signed integer (lpcm)
 
+## Notes
+
+- Configuration may not be optimal. You could adjust some of the parameters (beams, language model weight, word insertion penalty, etc) depending on your task.
+
+- We used different models to generate our automatic transcription such as a British English dictionary. If you would be interested in it please get in contact with us. 
 
 ## Links 
 
-- [Truly Madly Wordly](http://trulymadlywordly.blogspot.co.uk/2011/12/sphinx4-speech-recognition-results-for.html) uses CMU Sphinx4 for the transcription of lectures. 
+- [Truly Madly Wordly](http://trulymadlywordly.blogspot.co.uk/2011/12/sphinx4-speech-recognition-results-for.html) uses CMU Sphinx4 for the transcription of university lectures. 
 
 ## Tags
 
