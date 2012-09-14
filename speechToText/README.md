@@ -1,126 +1,33 @@
-## Introduction
+### SPINDLE Speech to text automatic transcription
 
-Keywords.py is a python script developed during the SPINDLE project [[blog] (http://blogs.oucs.ox.ac.uk/openspires/category/spindle/)] [[website](http://openspires.oucs.ox.ac.uk/spindle/)] that generates keywords from a text. 
-It has been used during the [SPINDLE] 
-(http://openspires.oucs.ox.ac.uk/spindle/) project to [generate keywords
- from automatic transcriptions] 
-(http://blogs.oucs.ox.ac.uk/openspires/2012/09/12/spindle-automatic-keyword-generation-step-by-step/).
- 
-## How to use it
+Please find below the instructions to set up CMU Sphinx4 in Large Vocabulary Continuous Speech Recognition mode. We used different models for our automatic transcription such as a British English dictionary. If you would be interested in it please get in contact with us. 
 
-**Usage:** 
+- Download and install the source version of [CMU Sphinx4](http://sourceforge.net/projects/cmusphinx/files/sphinx4/1.0%20beta6/sphinx4-1.0beta6-src.zip/download) to $SPHINX_INSTALL_DIRECTORY. Instructions can be found at their [website](http://cmusphinx.sourceforge.net/wiki/sphinx4:howtobuildand_run_sphinx4) and here is the access to their [forums](http://cmusphinx.sourceforge.net/wiki/communicate/).
+- Download HUB4 [acoustic](http://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/US%20English%20HUB4%20Acoustic%20Model/) and [language models](http://sourceforge.net/projects/cmusphinx/files/Acoustic%20and%20Language%20Models/US%20English%20HUB4%20Language%20Model/).
+- Copy HUB4 acoustic models to the directory $SPHINX_INSTALL_DIRECTORY/models/acustic and HUB4 language models to the directory $SPHINX_INSTALL_DIRECTORY/models/language. 
+- Modify Transcriber.java from src/apps/edu/cmu/sphinx/demo/transcriber/Transcriber.java to show the time stamps for each word in the automatic transcription.
+
+    Original:
     
-    python keywords.py text.txt
+            String resultText = result.getBestResultNoFiller();
+            System.out.println(resultText);
 
-or 
-
-    >>> from keywords import keywords_and_ngrams
-
-
-**Input:**
-
-The keywords.py script expects the text file to be in plain text format. If you have a transcription in another format, XMP for example, you should convert it to plain text before using keywords.py.  
-
-**Output:**
-
-List object containing two lists of tuples. The first list of tuples contains keywords, log-likelihood values. The second list of tuples contains bigrams, number of occurrences values. 
-
-    keyword-0 ll-0
-    keyword-1 ll-1
-    keyword-2 ll-2
+    Modified:
     
-    bigram-0 n-occurrences-bigram-0
-    bigram-1 n-occurrences-bigram-1
-    bigram-2 n-occurrences-bigram-2
+            if (result != null){
+                System.out.println(result.getTimedBestResult(true, true));
+            }
 
-## Example
+- Download config.xml and copy to src/apps/edu/cmu/sphinx/demo/transcriber/config.xml
+- Compile from the installation directory:
 
-We include in the repository the automatic transcription of the podcast [Global Recession: How Did it Happen?] (http://podcasts.ox.ac.uk/global-recession-how-did-it-happen-audio) (Correct Words = 32.9%). We selected a bad automatic transcription to show that even with a low number of correct words we can extract some relevant keywords and bigrams automatically.
+        ant 
 
+- Run Transcriber.jar from bin/Transcriber.jar:
 
-        python keywords.py 01_crunch-medium-audio_automatic_transcription.txt
+        java -mx800m -jar bin/Transcriber.jar file.wav
 
-**Keywords Generated** (word: Log-likelihood)
-
-        banks: 141.12175627
-        crisis: 73.3976004078
-        companies: 67.8498685789
-        assets: 61.8910800051
-        haiti: 47.7956942776
-        interest: 41.3390170289
-        credit: 39.6149918395
-        crunch: 35.9334074944
-        senate: 32.4501608202
-        profited: 30.625124757
-        sitcom: 30.625124757
-        ansa: 30.625124757
-        nineteen: 29.0864140753
-        economy: 28.6440250819
-        nineties: 27.5138518651
-        haitian: 26.8069860979
-        sanctioning: 26.8069860979
-        center: 26.8069860979
-        regulate: 25.4923775621
-        hashing: 25.0818400138
-        haitians: 25.0818400138
-        stimulus: 24.5089608603
-        united: 24.1102094531
-        successful: 21.8091735308
-        financial: 21.7481087661
-        key: 21.6791751296
-        caught: 21.1648006228
-        eases: 21.0970376283
-        bankruptcy: 21.0970376283
-        rates: 21.0105869453
-        kind: 20.8040324729
-        cited: 20.6246470912
-        backs: 19.9877139071
-        borrowing: 19.9877139071
-        crimes: 19.5817617075
-        countries: 19.5490491082
-        essentially: 19.334521352
-        fiscal: 19.1532240523
-
-**Collocations Generated** (collocation: #occurrences)
-
-        interest rates: 5
-        financial crisis: 4
-        all street: 3
-        nineteen nineties: 3
-        credit crunch: 3
-        british government: 3
-
-**Word Cloud** (using Wordle)
-
-![Word Cloud](http://blogs.oucs.ox.ac.uk/openspires/files/2012/09/keywords_script_example_snapshot.jpg)
-
-## Parameters
-
-- nKeywords: number of keywords generated by the script (default 100)
-- thresholdLL: log-likelihood value threshold (default 19)
-- nBigrams: number of bigrams generated by the script (default 25)
-- thresholdBigrams: minimun of occurrences of a bigram (default 2)
-
-## Dependencies
-
-**bnc.py**
-
-Keywords.py expects bnc.py to be in the same directory. The bnc.py script contains a list of word frequencies obtained from the spoken part of the British National Corpus (BNC) and the total number of words of the spoken part of the BNC. 
-
-You could use the script with any other word frequencies obtained from a different corpus. 
-
-**stopwords.py**
-
-Keywords.py expects stopwords.py to be in the same directory. The stopwords.py script contains a list of stopwords (words that are too common to be considered keywords). You can add or remove any word adding it or deleting it from the list. 
-   
-   
-## Further information
-
-Please check the following blog post [SPINDLE Automatic Keyword Generation: Step by Step] (http://blogs.oucs.ox.ac.uk/openspires/2012/09/12/spindle-automatic-keyword-generation-step-by-step/).
-
-## Use cases
-
-The keywords.py script can be used as a stand-alone application or as a module importing it into your python code. It can also be used within a web framework. 
+- NOTE: the audio .wav file should be 16khz, 16-bit, 1 channel, little-endian signed integer (lpcm)
 
 ## Tags
 
