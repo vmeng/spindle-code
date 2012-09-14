@@ -122,6 +122,11 @@ Please check the following blog post [SPINDLE Automatic Keyword Generation: Step
 
 The keywords.py script can be used as a stand-alone application or as a module importing it into your python code. It can also be used within a web framework. 
 
+## License
+
+All files in this directory are licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 2.0 UK: England & Wales License. To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/2.0/uk/ or send a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
+
 ## Tags
 
  #spindle #openspires #ukoer #oerri 
