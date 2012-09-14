@@ -23,11 +23,16 @@ Please find below the instructions to set up CMU Sphinx4 in Large Vocabulary Con
 
         ant 
 
-- Run Transcriber.jar from bin/Transcriber.jar:
+- Run the Transcriber.jar program from $SPHINX_INSTALL_DIRECTORY:
 
         java -mx800m -jar bin/Transcriber.jar file.wav
 
 - NOTE: the audio .wav file should be 16khz, 16-bit, 1 channel, little-endian signed integer (lpcm)
+
+
+## Links 
+
+- [Truly Madly Wordly](http://trulymadlywordly.blogspot.co.uk/2011/12/sphinx4-speech-recognition-results-for.html) uses CMU Sphinx4 for the transcription of lectures. 
 
 ## Tags
 
