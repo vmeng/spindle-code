@@ -38,7 +38,8 @@ We used CMU Sphinx4 during the [SPINDLE project](http://blogs.oucs.ox.ac.uk/open
 
 ## Links 
 
-- [Truly Madly Wordly](http://trulymadlywordly.blogspot.co.uk/2011/12/sphinx4-speech-recognition-results-for.html) uses CMU Sphinx4 for the transcription of university lectures. 
+- Our blog: [SPINDLE project](http://blogs.oucs.ox.ac.uk/openspires/category/spindle/) 
+- Similar project: [Truly Madly Wordly](http://trulymadlywordly.blogspot.co.uk/2011/12/sphinx4-speech-recognition-results-for.html) uses CMU Sphinx4 for the transcription of university lectures. 
 
 ## Tags
 
