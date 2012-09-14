@@ -124,7 +124,7 @@ The keywords.py script can be used as a stand-alone application or as a module i
 
 ## License
 
-All the files on the directory with the exception of 01_crunch-medium-audio_automatic_transcription.txt (that is licensed under a is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 2.0 UK: England & Wales License) are licensed under an [MIT License](http://opensource.org/licenses/MIT).
+All files on the directory with the exception of 01_crunch-medium-audio_automatic_transcription.txt (that is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike 2.0 UK: England & Wales License) are licensed under an [MIT License](http://opensource.org/licenses/MIT).
 
 ## Tags
 
