@@ -1,0 +1,43 @@
+{% load spindle_extras %}
+
+<table class="table table-striped" id="queue-table">
+  <thead>
+    <tr>
+      <td>Name</td>
+      <td>Service</td>      
+      <td>Status</td>
+      <td>Progress</td>
+    </tr>
+  </thead>
+  
+  <tbody>
+    {% for req in queue %}
+      <tr>
+        <td>
+          <p><a href="{% url spindle_item_tracks req.item.id %}">{{ req.item.name }}</a></p>
+          <small>{{ req.item.audio_url }}</small>
+        </td>
+
+        <td>{{ req.engine }}</td>        
+
+        <td>{{ req.status }}
+          {% if req.eta %}
+            <p>Time remaining: {{ req.eta|duration }}</p>
+          {% endif %} 
+</td>
+
+        <td>
+          {% if req.progress_bar %}
+            <div class="progress progress-striped active" style="width: 10em">
+              <div class="bar"
+                   style="width: {{ req.percent }}%"
+                   data-item-id="{{ req.item.id }}"></div>
+            </div>
+          {% else %}
+            <span></span>            
+          {% endif %}      
+        </td>          
+      </tr>
+    {% endfor %}
+  </tbody>
+</title>

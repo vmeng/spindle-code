@@ -1,0 +1,17 @@
+{% extends "spindle/index.html" %}
+{% load sitetree  spindle_extras %}
+
+{% block content %}
+  <h2>{{ item.name }}</h2>
+
+  {% sitetree_menu from "opmstree" include "this-siblings" template "spindle/tab_bar.html" %}
+
+  <form method='post'>
+    {% csrf_token %}      
+    <div id="metadata">
+      {{ form.as_p }}            
+      <input class='btn' type='submit' name='update_item' value='Update item' />
+    </div>
+  </form>
+
+{% endblock %}

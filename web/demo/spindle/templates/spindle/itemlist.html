@@ -1,0 +1,56 @@
+{% extends "spindle/index.html" %}
+{% load spindle_extras %}
+
+{% block head %}
+  {{ block.super }}
+  <link rel='stylesheet' href='{{ STATIC_URL }}spindle/css/itemlist.css' />
+{% endblock %}
+
+
+{% block navbar %}
+{% endblock %}
+
+{% block content %}
+  <h2>Items for transcription</h2>
+  <form class="form-horizontal form-search" method="get">
+    <input class="search-query"
+           type="text"
+           name="search"
+           value="{{ search }}"
+           placeholder="Search titles and URLs" />
+      <button type="submit" class="btn">Search</button>
+  </form>           
+
+  <p>Showing {{ range }} {{ count }} items {{ searchdescription }}.</p>
+<p>
+  <a href="{{ prevUrl }}"><i class="icon-backward"></i> Prev page </a>          
+  <a href="{{ nextUrl }}" class="pull-right">Next page <i class="icon-forward"></i></a>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <td><a href="{{ orderUrls.name }}">Name</a></td>
+        <td><a href="{{ orderUrls.published }}">Date</a></td>
+        <td><a href="{{ orderUrls.duration }}">Length</a></td>
+        <td><a href="{{ orderUrls.edited_fraction }}">% edited</a></td>
+      </tr>
+    </thead>          
+    <tbody>
+      {% for item in items %}
+        <tr>
+          <td>
+            <a href="{% url spindle_item_tracks item.id %}">{{ item.name }}</a>
+            {% if item.video_url %}
+              <p class="url"> {{item.video_url}}</p>
+            {% endif %}
+            {% if item.audio_url %}      
+              <p class="url"> {{item.audio_url}}</p>
+            {% endif %}      
+          </td>      
+          <td>{{ item.published|date:"SHORT_DATE_FORMAT" }}</td>
+          <td>{{ item.duration|duration }}</td>
+          <td>{{ item.edited_fraction|percent_complete }}</td>      
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

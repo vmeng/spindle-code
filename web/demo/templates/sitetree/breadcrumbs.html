@@ -1,0 +1,16 @@
+{% load sitetree %}
+{% if sitetree_items|length_is:"1" %}
+{% else %}
+    <ul class="breadcrumb">
+        {% for sitetree_item in sitetree_items %}
+            {% if not forloop.last %}
+                <li>
+                    <a href="{% sitetree_url for sitetree_item %}" {% if sitetree_item.hint %}title="{{ sitetree_item.hint }}"{% endif %}>{{ sitetree_item.title_resolved }}</a>
+                    <span class="divider">/</span>
+                </li>
+            {% else %}
+                <li class="active">{{ sitetree_item.title_resolved }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endif %}

@@ -1,0 +1,44 @@
+{% extends "spindle/index.html" %}
+{% load spindle_extras %}
+
+{% block content %}
+  <h2>{{ item.name }}</h2>
+
+  {% sitetree_menu from "opmstree" include "this-siblings" template "spindle/tab_bar.html" %}
+
+  {% if item.track_set.count %}      
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <td>Description</td>
+            <td>Type</td>
+            <td>Language</td>          
+            <td>Last updated</td>
+            <td>% edited</td>
+          </tr>
+        </thead>
+        
+        <tbody> 
+          {% for track in item.track_set.all %}        
+            <tr>
+              <td>
+                <a href="{% url spindle_edit track.id %}" class="btn btn-primary">
+                  Edit
+                </a>                  
+                <a href="{% url spindle_edit track.id %}">
+                  {{ track.name|default:"Transcript" }}
+                </a>
+              </td>
+              <td>{{ track.kind }}</td>            
+              <td>{{ track.lang }}</td>
+              <td>{{ track.updated }}</td>
+              <td>{{ track.edited_fraction|percent_complete }}</td>
+            </tr>
+          {% endfor %} 
+        </tbody>        
+      </table>
+    {% else %}
+      <p>There are no transcripts for this item yet. Use the "add transcript" tab above to begin creating one.</p>
+    {% endif %} 
+  {% endblock %}  
+

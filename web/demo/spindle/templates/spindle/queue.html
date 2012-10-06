@@ -1,0 +1,16 @@
+{% extends "spindle/index.html" %}
+
+{% block head %}
+{{ block.super }}
+<script>
+  SPINDLE.views = { queuepartial: '{% url spindle.views.queuepartial %}' };
+</script>
+<script src="{{ STATIC_URL }}spindle/js/queue.js"></script>
+
+{% endblock %}
+
+{% block content %}
+  <h2>Transcription queue</h2>
+  {% include "spindle/queuepartial.html" %}
+{% endblock %}  
+

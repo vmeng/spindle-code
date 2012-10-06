@@ -1,0 +1,18 @@
+/**
+ * Layout elements for OPMS
+ */
+ 
+#navbar ul.level1, #navbar ul.level2 {
+    list-style-type: none;
+    margin: 0;
+}
+
+#navbar ul.level1 li, #navbar ul.level2 li {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+#navbar ul.level1 li a, #navbar ul.level2 li a {
+    height:2em;
+}

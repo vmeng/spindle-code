@@ -1,0 +1,54 @@
+{% extends "spindle/index.html" %}
+{% load sitetree  spindle_extras %}
+
+{% block content %}
+  <h2>{{ item.name }}</h2>
+
+  {% sitetree_menu from "opmstree" include "this-siblings" template "spindle/tab_bar.html" %}
+  
+  <ul class="nav nav-pills">
+    <li class="active">
+      <a href="#new-transcript" data-toggle="tab">New transcript</a>
+    </li>
+    <li><a href="#upload-transcript" data-toggle="tab">Upload transcript</a></li>
+    <li><a href="#speech-to-text" data-toggle="tab">Speech to text</a></li>
+  </ul>
+
+
+  <div class="tab-content">
+    <div class="tab-pane active" id="new-transcript">  
+      <form method='post'>
+        {% csrf_token %}      
+        
+        <p><b>Create a new, empty transcript to start from scratch:</b></p>
+        {{ new_track_form.as_p }} 
+        <input class="btn" type="submit" name="new_track" value="New transcript" />
+      </form>
+    </div>
+
+    <div class="tab-pane" id="upload-transcript">  
+      <form method='post' enctype="multipart/form-data">
+        {% csrf_token %}      
+
+        <p><b>Upload a transcript file in one of the supported formats:</b></p>
+        {{ upload_track_form.as_p }}
+        <input class="btn" type="submit" name="upload_track" value="Upload transcript" />
+      </form>
+    </div>
+
+    <div class="tab-pane" id="speech-to-text">  
+      <form method='post'>
+        {% csrf_token %}      
+
+        <p><b>Request speech-to-text transcription</b></p>
+        <p>Add this podcast to the queue of items to be
+          automatically transcribed using one of the listed
+          services:</p>
+          {{ request_transcript_form.as_p }}            
+          <input class="btn" type="submit" name="request_transcript" value="Request transcript" />
+      </form>      
+    </div>
+
+  </div>
+
+{% endblock %}

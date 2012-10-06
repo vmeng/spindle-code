@@ -1,0 +1,5 @@
+                        {% load sitetree %}<ul class="dropdown-menu">
+                            {% for sitetree_item in sitetree_items %}<li>
+                                <a href="{% sitetree_url for sitetree_item %}"{% if sitetree_item.hint %} title="{{ sitetree_item.hint }}"{% endif %}{% if sitetree_item.is_current or sitetree_item.in_current_branch %} class="{{ sitetree_item.is_current|yesno:"active," }}{{ sitetree_item.in_current_branch|yesno:" active," }}"{% endif %}>{{ sitetree_item.title_resolved }}</a>
+                            </li>{% endfor %}
+                        </ul>

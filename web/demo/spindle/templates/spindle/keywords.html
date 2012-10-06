@@ -1,0 +1,31 @@
+{% extends "spindle/index.html" %}
+{% load sitetree %}
+
+{% block head %}
+  {{ block.super }}  
+  <link rel='stylesheet' href='{{ STATIC_URL }}spindle/css/keywords.css' />
+  <script src='{{ STATIC_URL }}spindle/js/keywords.js'></script>
+{% endblock %}
+
+{% block content %}
+
+  {% sitetree_menu from "opmstree" include "this-siblings" template "spindle/tab_bar.html" %}
+      
+    <h2>{{ item.name }}</h2>
+
+    <h3>Automatically Extracted Keywords:</h3>    
+    <div class="well">
+      {{ keywordblock|safe }}
+    </div>
+    
+    <h3>Automatically Extracted Phrases:</h3>
+    <div class="well">
+      {{ ngramblock|safe }}
+    </div>
+
+    <h3>Keywords from Oxitems:</h3>
+    <div class="well">    
+      <textarea id="keywords" class="span10">{{ oxitems_keywords }}</textarea>
+      <p>Keywords entered here will not be saved. Copy and paste to Oxitems to keep them.</p>
+    </div>
+{% endblock %}

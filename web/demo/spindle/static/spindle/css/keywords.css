@@ -1,0 +1,30 @@
+a.tag.c0 {
+    font-size: 0.75em;
+    color:#FF0000;
+} 
+
+a.tag.c1 {
+    color:#ff8939;
+    font-size: 1em;
+}
+
+a.tag.c2 {
+    color:#4AA02C;
+    font-size: 1.25em;
+}
+
+a.tag.c3 {
+    color:#008000;
+    font-size: 1.50em;
+}    
+
+a.tag.c4 {
+    color:#254117;
+    font-size: 2em;
+}  
+
+/* a.tag.c0:hover{color:#E77471;} */
+/* a.tag.c1:hover{color:#ffd3b5;} */
+/* a.tag.c3:hover{color:#00FF00;} */
+/* a.tag.c4:hover{color:#4E8975;} */
+/* a.tag.c2:hover{color:#5EFB6E;} */

@@ -1,0 +1,15 @@
+{% load sitetree %}
+{% if sitetree_items %}
+    <ul>
+        {% for sitetree_item in sitetree_items %}
+            {% if sitetree_item.insitetree  %}
+                <li>
+                    <a href="{% sitetree_url for sitetree_item %}" {% if sitetree_item.hint %}title="{{ sitetree_item.hint }}"{% endif %}>{{ sitetree_item.title_resolved }}</a>
+                    {% if sitetree_item.has_children %}
+                        {% sitetree_children of sitetree_item for sitetree template "sitetree/tree.html" %}
+                    {% endif %}
+                </li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+{% endif %}
