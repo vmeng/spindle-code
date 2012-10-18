@@ -1,8 +1,8 @@
 /* -*- js2-additional-externs: ("SPINDLE" "sprintf" "document" "window") -*- */
 
 /*
- * Class Editor: the caption editor 
- * 
+ * Class Editor: the caption editor
+ *
  * Controls a video/audio player. Fetches the clips from the server
  * when loaded and constructs a list of Caption objects to edit them
  * with.
@@ -10,29 +10,28 @@
 SPINDLE.Editor = function () {
 };
 
-/* 
+/*
  * Editor properties and instance methods
  */
 SPINDLE.Editor.prototype = {
     // References to DOM elements
     player : undefined,         // <video> or <audio> element
-    saveButton: undefined,     
+    saveButton: undefined,
+
+    // Clip corresponding to current playback position
+    playingClip: undefined,
 
     /* How many clips have been edited? */
     editedCount: 0,
-
-    /* Index of currently playing clip
-     */
-    playIdx: 0,
 
     /* Flag: Set to the caption ID when we have just jumped to the
      * beginning of a caption, inhibits scrolling & auto-adjusting
      * backwards until the caption changes */
     justSelectedIdx: null,
- 
+
     /* The item we are editing */
     item: undefined,
-    
+
 
     /**
      * Setup procedures
@@ -56,7 +55,7 @@ SPINDLE.Editor.prototype = {
             self.track.fetch().success(function () {
                 self.status("fetching speakers...");
                 self.track.get('speakers').fetch().success(success);
-                
+
                 function success () {
                     self.status("fetching clips...");
                     self.track.get('clips').fetch().success(success2);
@@ -81,13 +80,13 @@ SPINDLE.Editor.prototype = {
                     }
                 }
             });
-            
+
         });
     },
-    
+
     makeEmptyClips: function () {
-        var self = this; 
-        
+        var self = this;
+
         // We need the duration from the media player before creating
         // empty clips
         if(self.player.duration) {
@@ -101,65 +100,86 @@ SPINDLE.Editor.prototype = {
             self.status('Creating empty transcript...');
             var intime = 0.0, clip, cliplength = 4.0,
                 clipset = new ClipSet();
-            
+
             while (intime < self.player.duration) {
                 self.track.get('clips').push({
                     track: self.track,
                     intime: intime,
                     outtime: intime + cliplength,
                     caption_text: "",
-                    edited: false 
+                    edited: false
                 });
                 intime += cliplength;
             }
-            
+
             self.finishInit();
         }
     },
-    
+
     finishInit: function () {
         var Caption = SPINDLE.Caption,
             Editor = SPINDLE.Editor,
-            self = this,
-            prevSpeaker = null;
+            self = this;
 
         // Set up drop down menus
         $('.dropdown-toggle').dropdown();
         $('#speed-menu a').bind('click', function () {
             self.player.playbackRate = Number(($(this).data('speed')));
         });
-        
+
         // Save changes before leaving
         $(window).bind('unload', $.proxy(self.save, self));
 
         // Create editable caption views
         this.track.get('clips').each(function(clip, i) {
-            var isSpeakerChange = (i == 0) || clip.get('speaker') !== prevSpeaker, 
-                caption = new Caption(self, clip, false, isSpeakerChange);
+            var caption = new Caption({owner: self,
+                                       clip: clip,
+                                       active: false});
 
-            clip.caption = caption;
-            $("#captionList").append(caption.dom);
+            $("#captionList").append(caption.render().el);
             if(clip.get('edited')) self.editedCount++;
-
-            prevSpeaker = clip.get('speaker');
 
             self.popcorn.subtitle({
                 start: clip.get('intime'),
                 end: clip.get('outtime'),
                 text: clip.get('caption_text')
             });
+
+            self.popcorn.code({
+                start: clip.get('intime'),
+                end: clip.get('outtime'),
+                onStart: function() {
+                    // Prevent annoying jumping back one caption due
+                    // to timing tolerances.
+                    if(self.justSelectedIdx === null
+                       || self.track.get('clips').indexOf(clip) > self.justSelectedIdx) {
+                        self.playingClip = clip;
+                        self.makeCaptionActive(caption);
+                        self.justSelectedIdx = null;
+                    }
+
+                    // Scroll the caption into view only if (1) the user
+                    // didn't just manually click on a caption, and (2) there
+                    // is no editor active.
+                    if(self.justSelectedIdx === null // && self.editIdx() === null
+                      ) {
+                        self.scrollto();
+                    }
+                },
+                onEnd: function() {
+                }
+            });
         });
-            
+
         // Track changes
-        self.track.get('speakers').on('change add', this.onSpeakerChange, this);        
+        self.track.get('speakers').on('change add', this.onSpeakerChange, this);
         this.onSpeakerChange();
 
-        self.track.get('clips').on('change add', dirty);
-
-        function dirty(obj, changed) { self.dirty(true); } 
+        self.track.get('clips').on('change add',
+                                   function (obj, changed) { self.dirty(true); });
 
         // Bind key events, button clicks
-        $(document).bind("keydown", $.proxy(Editor.callbacks.keydown, this)); 
+        $(document).bind("keydown", $.proxy(Editor.callbacks.keydown, this));
         $(".next-unedited").click($.proxy(this.nextUnedited, this));
         $(".prev-unedited").click($.proxy(this.prevUnedited, this));
         $(".export-link").click(Editor.callbacks.exportLink);
@@ -168,7 +188,7 @@ SPINDLE.Editor.prototype = {
         this.saveButton = $('#save-button')
             .click($.proxy(this.save, this))
             .get(0);
-        
+
         // Bind buttons in modal dialogs
         $("#add-speaker-button").click($.proxy(Editor.callbacks.addSpeaker, this));
         $("#rename-speaker-button").click($.proxy(Editor.callbacks.renameSpeaker, this));
@@ -176,7 +196,7 @@ SPINDLE.Editor.prototype = {
 
         // Update display
         this.updateStats();
-    },    
+    },
 
     /*
      * Set/get dirty (edited) flag
@@ -187,43 +207,33 @@ SPINDLE.Editor.prototype = {
         return function(setTo) {
             if(setTo === undefined)
                 return dirty;
-            
+
             dirty = setTo;
             if(dirty) {
                 $(this.saveButton).removeClass('disabled');
             } else {
                 $(this.saveButton).addClass('disabled');
             }
-            
+
         };
     }()),
-    
+
     /*
      * Functions for manipulating the screen
      */
-    status: function (msg) {
-        $('#stats').html(msg);    
-    },
-
-    redisplay: (function () {
-        var oldIdx = null;
-
-        return function () {
-            var clip = this.track.get('clips').at(this.playIdx);
-        
-            if(this.player.currentTime < clip.get('outtime')) {
-                $("#caption").html(clip.get('caption_text'));
-            } else {
-                $("#caption").html("");
-            }
-            
-            if(oldIdx !== null && this.captionAtIdx(oldIdx)) {
-                this.captionAtIdx(oldIdx).makeActive(false);            
-            }
-            this.playCap().makeActive();
-            oldIdx = this.playIdx;
+    makeCaptionActive: (function () {
+        var active = null;
+        return function (caption) {
+            if(active !== null)
+                active.makeActive(false);
+            active = caption;
+            active.makeActive();
         };
     })(),
+
+    status: function (msg) {
+        $('#stats').html(msg);
+    },
 
     scrollto: function () {
         var $list = $('#captionList');
@@ -235,18 +245,21 @@ SPINDLE.Editor.prototype = {
     captionPosition: function (caption) {
         var $list = $('#captionList');
         // HACK UGH FIXME
-        return $(caption.dom).offset().top
+        return caption.$el.offset().top
             + $list.scrollTop() - $list.position().top;
     },
 
+    playIdx: function () {
+        var idx = this.track.get('clips').indexOf(this.playingClip);
+        return idx !== -1 ? idx : null;
+    },
+
     editIdx: function () {
-        var active = document.activeElement;
-        if(active) {
-            var caption = SPINDLE.Caption.fromDOM(active);
-            return caption ? this.track.get('clips').indexOf(caption.clip) : null;
-          } else {
-              return null;
-          }
+        if(document.activeElement) {
+            return this.fixmeCurrentEditIdx;
+        } else {
+            return null;
+        }
     },
 
     updateStats: function() {
@@ -261,12 +274,13 @@ SPINDLE.Editor.prototype = {
             this.player.play();
         } else {
             this.player.pause();
-            if(this.editIdx() !== null && this.editIdx() <= this.playIdx) {
+            if(this.editIdx() !== null && this.playIdx() !== null
+               && this.editIdx() <= this.playIdx()) {
                 this.jumpToIdx(this.editIdx());
             }
         }
     },
-    
+
     /*
      * "Edit speaker" modal dialog stuff.
      */
@@ -301,7 +315,7 @@ SPINDLE.Editor.prototype = {
             $('#edit-speaker-name').attr('disabled', 'disabled');
             $('#rename-speaker-button').attr('disabled', 'disabled');
         }
-        
+
         $("#edit-speaker-select").replaceWith(select);
     },
 
@@ -310,30 +324,35 @@ SPINDLE.Editor.prototype = {
      * Jump to clip at given array index
      */
     jumpToIdx: function (idx) {
-        this.playIdx = this.justSelectedIdx = idx;
-        try {
-            this.player.currentTime = this.track.get('clips').at(idx).get('intime');
-        } catch(e) {
-        }
-        this.redisplay();
+        this.jumpToClip(this.track.get('clips').at(idx));
     },
 
     jumpToClip: function (clip) {
         var idx = this.track.get('clips').indexOf(clip);
-        if(idx !== -1) this.jumpToIdx(idx);
+        if(idx === -1) return;
+
+        try {
+            this.player.currentTime = clip.get('intime');
+            this.makeCaptionActive(clip.caption);
+            this.justSelectedIdx = idx;
+        } catch(e) {
+        }
     },
 
     /*
      * Edit the clip at a given index
      */
+    fixmeCurrentEditIdx: 0,
+
     editAtIdx: function (idx, nofocus) {
         if(idx !== null) {
             if(!nofocus)
-                this.track.get('clips').at(idx).caption.focus();
+                this.track.get('clips').at(idx).caption.makeFocused();
 
             if(this.player.paused) {
                 this.jumpToIdx(idx);
-            }        
+            }
+            this.fixmeCurrentEditIdx = idx;
         }
     },
 
@@ -341,7 +360,7 @@ SPINDLE.Editor.prototype = {
         var idx = this.track.get('clips').indexOf(clip);
         this.editAtIdx(idx === -1 ? null : idx, nofocus);
     },
-    
+
     clipBefore: function (clip) {
         return this.track.get('clips').at(this.track.get('clips').indexOf(clip) - 1);
     },
@@ -349,54 +368,51 @@ SPINDLE.Editor.prototype = {
     clipAfter: function (clip) {
         return this.track.get('clips').at(this.track.get('clips').indexOf(clip) + 1);
     },
-    
+
     removeClip: function(clip) {
-       // this.track.get('clips').splice(this.track.get('clips').indexOf(clip), 1);
         this.track.get('clips').remove(clip);
     },
 
     insertClipAfter: function(newclip, after) {
-       // this.track.get('clips').splice(this.track.get('clips').indexOf(after) + 1, 0, newclip);
         this.track.get('clips').add(newclip);
     },
 
-    /* 
+    /*
      * Move down or up the list of captions. Behaves differently
      * depending on whether a caption editor is focused or not.
      */
     moveUp: function () {
         if(this.editIdx() !== null && this.editIdx() !== 0) {
-            this.editAtIdx(this.editIdx() - 1); 
+            this.editAtIdx(this.editIdx() - 1);
             if(this.editCap())
                 this.editCap().point(this.editCap().text().length);
-        } else if(this.playIdx !== 0) {
-            this.jumpToIdx(this.playIdx - 1);
-            if(this.player.paused) {
-                this.scrollto();
-            }
-        }
-    },
-    
-    moveDown: function () {
-        var cap = this.editCap(),
-            max = this.track.get('clips').length - 1;
-        if(this.editIdx() !== null && this.editIdx() < max) {
-            this.editAtIdx(this.editIdx() + 1);
-            this.editCap().point(0);
-        } else if(this.playIdx < max) {
-            this.jumpToIdx(this.playIdx + 1);
+        } else if(this.playIdx() !== 0) {
+            this.jumpToIdx(this.playIdx() - 1);
             if(this.player.paused) {
                 this.scrollto();
             }
         }
     },
 
-    /* 
+    moveDown: function () {
+        var max = this.track.get('clips').length - 1;
+        if(this.editIdx() !== null && this.editIdx() < max) {
+            this.editAtIdx(this.editIdx() + 1);
+            this.editCap().point(0);
+        } else if(this.playIdx() < max) {
+            this.jumpToIdx(this.playIdx() + 1);
+            if(this.player.paused) {
+                this.scrollto();
+            }
+        }
+    },
+
+    /*
      * Skip to next un-corrected caption
      */
     skipUnedited: function (dir) {
         var len = this.track.get('clips').length,
-            idx = this.playIdx + dir;
+            idx = this.playIdx() + dir;
         if(idx < 0) idx = 0;
         else if(idx >= len) idx = len - 1;
 
@@ -415,7 +431,7 @@ SPINDLE.Editor.prototype = {
     },
 
     playCap: function () {
-        return this.captionAtIdx(this.playIdx);
+        return this.captionAtIdx(this.playIdx());
     },
 
     editCap: function () {
@@ -451,7 +467,7 @@ SPINDLE.Editor.prototype = {
                 error: error
             });
         }
-        
+
         function ok(result) {
             $(self.saveButton).html('Save');
             self.dirty(false);
@@ -467,65 +483,20 @@ SPINDLE.Editor.prototype = {
 };
 
 /*
- * Editor callbacks 
- * 
+ * Editor callbacks
+ *
  * Note that all of these are bound using jQuery.proxy, so that `this`
  * refers to the correct SPINDLE.Editor object. This is not generally
  * true; for example, the Caption callbacks find their associated
  * Caption object through properties on DOM elements.
  */
 SPINDLE.Editor.callbacks = {
-    /* 
-     * Video-player playback-head movement
-     * 
-     * Searches forward or backward for new transcript clip, if
-     * necessary.  
-     */
-    update: function (ev) { 
-        var playPos = this.player.currentTime,
-            curClip = this.track.get('clips') && this.track.get('clips').at(this.playIdx);
-
-        if(!curClip) return;
-
-        if(playPos >= curClip.get('intime') &&
-           playPos < curClip.get('outtime')) {
-            return;
-        } else if(playPos > curClip.get('outtime')
-                  && this.track.get('clips').at(this.playIdx+1)
-                  && playPos > this.track.get('clips').at(this.playIdx+1).get('intime')) {
-            while(playPos > curClip.get('outtime')) {
-                this.playIdx++;
-                curClip = this.track.get('clips').at(this.playIdx);
-            }
-            this.justSelectedIdx = null;
-        } else if(playPos < curClip.get('intime')
-                  && this.playIdx > 0
-                  && (this.justSelectedIdx === null || curClip.get('intime') - playPos > 1)) {
-            while(playPos < curClip.get('intime')
-                  && this.playIdx > 0) {
-                this.playIdx--;
-                curClip = this.track.get('clips').at(this.playIdx);
-            }
-            this.justSelectedIdx = null;
-        }
-
-        if(curClip) {
-            this.redisplay();
-            // Scroll the caption into view only if (1) the user
-            // didn't just manually click on a caption, and (2) there
-            // is no editor active.
-            if(this.justSelectedIdx === null && !this.editIdx()) {
-                this.scrollto();
-            }
-        }
-    },
-    
     keydown: function(ev) {
         if(ev.keyCode == SPINDLE.TAB_KEY) {
             if(ev.shiftKey) {
                 ev.keyCode = SPINDLE.UP_KEY;
             } else {
-                ev.keyCode = SPINDLE.DOWN_KEY;                    
+                ev.keyCode = SPINDLE.DOWN_KEY;
             }
         }
 
@@ -551,7 +522,7 @@ SPINDLE.Editor.callbacks = {
             this.moveUp();
             ev.preventDefault();
             ev.stopPropagation();
-            break;           
+            break;
         }
     },
 
@@ -560,7 +531,7 @@ SPINDLE.Editor.callbacks = {
             newSpeakerInput = $('#new-speaker-name'),
             speakerSelector = $('#edit-speaker-select'),
             speaker = { name: newSpeakerInput.val() };
-        
+
         editor.track.get('speakers').push(speaker);
         newSpeakerInput.val('');
     },
@@ -570,22 +541,22 @@ SPINDLE.Editor.callbacks = {
             speakerSelector = $('#edit-speaker-select'),
             speakerNameInput = $('#edit-speaker-name'),
             speaker = speakerSelector.find(':selected').data('speaker');
-        
+
         speaker.set('name', speakerNameInput.val());
         speakerNameInput.val('');
     },
-    
+
     exportLink: function (ev) {
         var editor = SPINDLE.instance,
             self = this;
-        
+
         if(editor.dirty()) {
             editor.save(function () {
                 window.location = $(self).attr('href');
             });
-            ev.preventDefault();            
+            ev.preventDefault();
         }
-    }        
+    }
 };
 
 

@@ -1,65 +1,46 @@
 /* -*- js2-additional-externs: ("SPINDLE" "sprintf") -*- */
 
-/* 
+/*
  * class Caption
  *
  * View class for one editable "clip", or line of caption text, on the
  * screen
  *
  */
-SPINDLE.Caption = 
-    function (owner, clip, active) {
-        this.owner = owner;
-        this.clip = clip;
+SPINDLE.Caption = Backbone.View.extend({
+    initialize: function (options) {
+        this.owner = options.owner;
+        this.clip = options.clip;
         this.clip.caption = this;
         this.clip.on('change', this.onChange, this);
 
-        this.active = active;
-        this.makeElements();
-    };
-    
-/*
- * Class methods
- */
+        this.active = !!options.active;
+    },
 
-/* Find an Caption object from a DOM element */
-SPINDLE.Caption.fromDOM = function (elem) {
-    var $elem = $(elem);
-    
-    if(! $elem.is(".caption")) {
-        $elem = $elem.parents(".caption");
-    }
-    
-    if(!$elem.length) {
-        return null;
-    }
-    return $elem.data("caption");
-};
+    /*
+     * Class methods
+     */
 
-/* Utility: format a time nicely */
-SPINDLE.Caption.formatTime = function (secs) {
-    var minutes, hours;
-    
-    if(secs < 60) {
-        return sprintf("%2ds", secs);
-    }
+    /* Utility: format a time nicely */
+    formatTime: function (secs) {
+        var minutes, hours;
 
-    minutes = Math.floor(secs/60);
-    secs = secs - 60*minutes;
-    if(minutes < 60) {
-        return sprintf("%2dm%2ds", minutes, secs);
-    }
+        if(secs < 60) {
+            return sprintf("%2ds", secs);
+        }
 
-    hours = Math.floor(minutes/60);
-    minutes = minutes - 60*hours;
+        minutes = Math.floor(secs/60);
+        secs = secs - 60*minutes;
+        if(minutes < 60) {
+            return sprintf("%2dm%2ds", minutes, secs);
+        }
 
-    return sprintf("%2dh%2dm%2ds", hours, minutes, secs);
-};
+        hours = Math.floor(minutes/60);
+        minutes = minutes - 60*hours;
 
-/*
- * Instance methods
- */
-SPINDLE.Caption.prototype = {
+        return sprintf("%2dh%2dm%2ds", hours, minutes, secs);
+    },
+
     /* SPINDLE.Editor object this belongs to */
     owner: undefined,
 
@@ -68,87 +49,102 @@ SPINDLE.Caption.prototype = {
     active: false,
 
     /* References to DOM elements */
-    dom: undefined,             // enclosing tag
     input: undefined,           // text box
     timecode: undefined,        // timecode
     para: undefined,            // "begin paragraph" toggle
     speakerSelect: undefined,         // "select speaker" popup
 
-    /* 
-     * Create the DOM elements 
+    events: {
+        "click .timecode": "dblclick",
+
+        "keydown .caption-text": "keydown",
+        "focus .caption-text": "onFocus",
+        "change .caption-text": "changeText",
+        "keypress .caption-text": "keypress",
+
+        "click .paragraph-toggle": "toggleBeginPara",
+
+        "change .speaker-selector": "changeSpeaker"
+    },
+
+    /*
+     * Create the DOM elements
      */
-    makeElements: function () {
-        var Caption = SPINDLE.Caption, clip = this.clip,
+    render: function () {
+        var clip = this.clip,
             outer = $("#caption-view-template")
                 .clone()
-                .removeAttr('id')
-                .data("caption", this),
+                .removeAttr('id'),
 
             timecode = outer.find(".timecode")
-                .html(Caption.formatTime(clip.get('intime')))
-                .bind("click", Caption.callbacks.dblclick),
+                .html(this.formatTime(clip.get('intime'))),
 
             para = outer.find(".paragraph-toggle")
-                .addClass(this.clip.get('begin_para') ? 'active' : '')
-                .click(Caption.callbacks.toggleBeginPara),
+                .addClass(this.clip.get('begin_para') ? 'active' : ''),
 
-            speaker = outer.find(".speaker-selector"),            
+            speaker = outer.find(".speaker-selector"),
 
             input = outer.find(".caption-text")
-                .attr("value", clip.get('caption_text'))
-                .bind("keydown", Caption.callbacks.keydown)
-                .keypress(Caption.callbacks.keypress)
-                .bind("focus", Caption.callbacks.focus)
-                .change(Caption.callbacks.changeText); 
+                .attr("value", clip.get('caption_text'));
 
         this.makeSpeakerSelector(speaker);
 
-        if(!this.clip.get('edited')) outer.addClass('unedited');
-        if(this.active) outer.addClass('active');
+        if(!this.clip.get('edited'))
+            outer.addClass('unedited');
+        if(this.active)
+            outer.addClass('active');
 
-        if(this.dom) {
-            $(this.dom).replaceWith(outer);
-        }
+        // if(this.dom) {
+        //     $(this.dom).replaceWith(outer);
+        // }
 
-        this.dom = outer[0];
+        this.setElement(outer[0]);
+
         this.input = input[0];
         this.timecode = timecode[0];
         this.para = para[0];
         this.speakerSelect = speaker[0];
+
+        return this;
     },
-     
+
     onChange: function () {
         var self = this,
-            track = this.clip.get('track'),
-            speaker = this.clip.get('speaker'),
-            speakers = track.get('speakers'),
-            clips = track.get('clips'),
-            idx = clips.indexOf(this.clip),
-            isSpeakerChange = idx == 0
-                || clips.at(idx - 1).get('speaker') !== this.clip.get('speaker');
-               
-        $(this.input).val(this.clip.get('caption_text'));
+            track, speaker, speakers, clips, idx, isSpeakerChange;
 
-        if(this.clip.get('begin_para')) {
-            $(this.para).addClass('active');
-        } else {
-            $(this.para).removeClass('active');
+        clips = this.clip.collection;
+        if(!clips)              // This clip has been deleted
+            return;
+
+        idx = clips.indexOf(this.clip);
+
+        track = clips.track;
+
+        speaker = this.clip.get('speaker');
+        speakers = track.get('speakers');
+        isSpeakerChange = idx == 0
+            || clips.at(idx - 1).get('speaker') !== this.clip.get('speaker');
+
+        function setClassIf($el, cond, clss) {
+            if(cond) $el.addClass(clss);
+            else $el.removeClass(clss);
         }
 
-        if(speaker)
-            $(this.speakerSelect).val(speaker.cid);
+        $(this.input).val(this.clip.get('caption_text'));
 
-        if(isSpeakerChange)
-            $(this.speakerSelect).addClass('speaker-change');
-        else
-            $(this.speakerSelect).removeClass('speaker-change');
+        setClassIf(this.$el, this.active, 'active');
+        setClassIf(this.$el, !this.clip.get('edited'), 'unedited');
+        setClassIf($(this.para), this.clip.get('begin_para'), 'active');
+        setClassIf($(this.speakerSelect), isSpeakerChange, 'speaker-change');
+
+        if(speaker) $(this.speakerSelect).val(speaker.cid);
     },
-    
+
     // Re-generate the speaker menu, after speakers are edited
     onSpeakerChange: function () {
         this.makeSpeakerSelector(this.speakerSelect);
     },
-    
+
     // Generate the speaker selector
     makeSpeakerSelector: function (elem) {
         var self = this,
@@ -158,7 +154,7 @@ SPINDLE.Caption.prototype = {
             speakers = track.get('speakers'),
             clips = track.get('clips'),
             idx = clips.indexOf(this.clip);
-            
+
         if(idx == -1) return;    // HACK FIXME
 
         var isSpeakerChange = idx == 0
@@ -171,7 +167,6 @@ SPINDLE.Caption.prototype = {
             select.html('');
         }
 
-        select.bind("change", Caption.callbacks.changeSpeaker);        
         if(isSpeakerChange) select.addClass("speaker-change");
 
         option = $("<option />")
@@ -196,33 +191,15 @@ SPINDLE.Caption.prototype = {
             option = $("<option />");
             select.append(option);
         }
-        
+
         speakers.on('add change remove', this.onSpeakerChange, this);
 
         option = $("<option />")
             .html("Edit speakers...")
             .attr('value', "edit-speakers");
         select.append(option);
-        
+
         return select;
-    },
-
-    /*
-     *  Update the DOM to reflect current values of this.clip
-     */
-    redisplay: function () {
-        var widget = $(this.dom);
-        if(this.active) {
-            widget.addClass("active");
-        } else {
-            widget.removeClass("active");
-        }
-
-        if(this.clip.get('edited')) {
-            widget.removeClass('unedited');
-        } else {
-            widget.addClass('unedited');
-        }
     },
 
     /* Make active or inactive
@@ -234,11 +211,10 @@ SPINDLE.Caption.prototype = {
         if(active === undefined) active = true;
 
         this.active = active;
-        this.redisplay();
+        this.onChange();
     },
-    
-    /* Make focused */
-    focus: function () {
+
+    makeFocused: function () {
         this.input.focus();
     },
 
@@ -250,7 +226,6 @@ SPINDLE.Caption.prototype = {
         this.clip.set('edited', setTo);
 
         if(this.clip.get('edited') !== wasEdited) {
-            this.redisplay();
             if(this.clip.get('edited')) {
                 this.owner.editedCount++;
                 this.owner.updateStats();
@@ -275,7 +250,7 @@ SPINDLE.Caption.prototype = {
     },
 
     speaker: function (setTo) {
-        var widget = $(this.speakerSelect);        
+        var widget = $(this.speakerSelect);
         if(setTo === undefined)
             return widget.find("option:selected").data('speaker');
 
@@ -305,15 +280,16 @@ SPINDLE.Caption.prototype = {
     delete: function () {
         var self = this;
 
-        $(self.dom).remove();
+        self.$el.remove();
         self.clip.off('change');
         self.clip.collection.remove(self.clip);
+        self.deleted = true;
     },
 
     insertSentenceBreak: function (ch) {
         var input = this.input, point = this.point(),
             text = this.text(), newText;
-        
+
         if(point == text.length) {
             var nextClip = this.owner.clipAfter(this.clip),
                 nextText = nextClip.get('caption_text'),
@@ -331,12 +307,12 @@ SPINDLE.Caption.prototype = {
         } else {
             var beforeText = text.substring(0, point).replace(/\s*$/, ''),
                 afterText = text.substring(point).replace(/^\s*/, '');
-            
-            newText = beforeText + ch + " " 
+
+            newText = beforeText + ch + " "
                 + afterText.replace(/^./, function(letter) {
                     return letter.toUpperCase();
                 });
-            
+
             this.clip.set('caption_text', newText);
 
             this.point(point + 1);
@@ -360,26 +336,30 @@ SPINDLE.Caption.prototype = {
             ratio = point / text.length,
             splitTime = this.clip.get('intime')
                 + ratio * (this.clip.get('outtime') - this.clip.get('intime')),
-            
+
             newClip = new Clip({
                 caption_text: text.substring(point).replace(/^\s*/, ""),
                 intime: splitTime,
                 outtime: this.clip.get('outtime'),
                 speaker: this.clip.get('speaker'),
+                track: this.clip.get('track'),
                 begin_para: false,
                 edited: true }),
             newCaption,
 
             self = this;
-        
+
         // Insert new clip into transcript
         self.clip.collection.add(newClip);
 
         // Create caption for newly inserted clip
-        newCaption = new SPINDLE.Caption(self.owner, newClip);
+        newCaption = new SPINDLE.Caption({
+            owner: self.owner,
+            clip: newClip
+        });
 
         // Insert new caption into the page
-        $(self.dom).after(newCaption.dom);
+        self.$el.after(newCaption.render().el);
 
         self.owner.editClip(newClip);
         newCaption.point(0);
@@ -388,7 +368,7 @@ SPINDLE.Caption.prototype = {
         self.clip.set('outtime', splitTime);
         self.clip.set('caption_text', text.substring(0, point));
     },
-    
+
 
     /* Join with prev */
     join: function () {
@@ -397,11 +377,10 @@ SPINDLE.Caption.prototype = {
 
         if(idx == 0)
             return;
-        else
-            prevClip = this.clip.collection.at(idx - 1);
 
+        prevClip = this.clip.collection.at(idx - 1);
 
-        // Update previous clip 
+        // Update previous clip
         var prevText = prevClip.get('caption_text'),
             point = prevText.length;
         prevClip.set('outtime', self.clip.get('outtime'));
@@ -409,53 +388,46 @@ SPINDLE.Caption.prototype = {
         prevText = prevText.replace(/\s+/, ' ');
         prevClip.set('caption_text', prevText);
 
-        // Remove ourselves from DOM      
-        self.delete();      
+        // Remove ourselves from DOM
+        self.delete();
 
         // ... and edit the caption
         self.owner.editClip(prevClip);
-        prevClip.caption.point(point); 
-    }
-};
+        prevClip.caption.point(point);
+    },
 
-/*
- * SPINDLE.Caption element callbacks
- */
-SPINDLE.Caption.callbacks = {        
+    /*
+     *  callbacks
+     */
+
     /* Click on the caption outside of the input element: jump the
      * editor to this point
      */
     dblclick: function () {
-        var caption = SPINDLE.Caption.fromDOM(this);
-        
-        caption.owner.jumpToClip(caption.clip);
+        this.owner.jumpToClip(this.clip);
     },
-    
-    focus: function () {
-        var caption = SPINDLE.Caption.fromDOM(this);
 
-        caption.owner.editClip(caption.clip, true);
+    onFocus: function () {
+        this.owner.editClip(this.clip, true);
     },
 
     keydown: function (ev) {
-        var caption = SPINDLE.Caption.fromDOM(this);
-
-        switch(ev.keyCode) {        
-            // Return: Split clip at point                    
+        switch(ev.keyCode) {
+            // Return: Split clip at point
         case SPINDLE.RETURN_KEY:
-            caption.split();
+            this.split();
             ev.stopPropagation();
             break;
-            
+
             // Backspace: Join with previous clip
         case SPINDLE.BACKSPACE_KEY:
             ev.stopPropagation();
-            if(ev.ctrlKey || (caption.point() == 0 && caption.selectionEmpty())) {
+            if(ev.ctrlKey || (this.point() == 0 && this.selectionEmpty())) {
                 ev.preventDefault();
-                caption.join();
+                this.join();
             }
             break;
-            
+
             // TAB and Shift-TAB are handled by the editor's DIV
             // handler, but we need to turn off the browser's default
             // next/prev-field behavior
@@ -463,18 +435,18 @@ SPINDLE.Caption.callbacks = {
             ev.preventDefault();
             break;
 
-            // Right and left: move to next/previous caption if point
+            // Right and left: move to next/previous this if point
             // is at beginning or end of this one
         case SPINDLE.RIGHT_KEY:
-            if(caption.point() == caption.text().length) {
-                caption.owner.moveDown();
+            if(this.point() == this.text().length) {
+                this.owner.moveDown();
                 ev.preventDefault();
             }
             break;
-            
+
         case SPINDLE.LEFT_KEY:
-            if(caption.point() == 0) {
-                caption.owner.moveUp();
+            if(this.point() == 0) {
+                this.owner.moveUp();
                 ev.preventDefault();
             }
             break;
@@ -483,46 +455,42 @@ SPINDLE.Caption.callbacks = {
     },
 
     keypress: function (ev) {
-        var caption = SPINDLE.Caption.fromDOM(this),
-            chr = String.fromCharCode(ev.which);
+        var chr = String.fromCharCode(ev.which);
 
         switch(chr) {
-            case ".":
-            case "?":
-            caption.insertSentenceBreak(chr);
-            ev.preventDefault();
-            break; 
-
-            case ",":
-            caption.insertComma();
+        case ".":
+        case "?":
+            this.insertSentenceBreak(chr);
             ev.preventDefault();
             break;
-        }        
+
+        case ",":
+            this.insertComma();
+            ev.preventDefault();
+            break;
+        }
     },
 
     changeText: function(ev) {
-        var caption = SPINDLE.Caption.fromDOM(this);
-        caption.clip.set('caption_text', $(this).val());
+        this.clip.set('caption_text', $(ev.target).val());
     },
 
     toggleBeginPara: function(ev) {
-        var caption = SPINDLE.Caption.fromDOM(this);
-        $(this).button('toggle');
-        caption.clip.set('begin_para', $(this).hasClass('active'));
+        $(ev.target).button('toggle');
+        this.clip.set('begin_para', $(ev.target).hasClass('active'));
     },
 
-    changeSpeaker: function () {
-        var caption = SPINDLE.Caption.fromDOM(this),
-            track = caption.clip.track,
-            clip = caption.clip,
+    changeSpeaker: function (ev) {
+        var track = this.clip.track,
+            clip = this.clip,
             clips = clip.collection,
             oldSpeaker = clip.get('speaker'),
-            newSpeaker = caption.speaker(),
+            newSpeaker = this.speaker(),
             idx;
 
-        if($(this).val() == 'edit-speakers') {
-            caption.owner.editSpeakers();
-            caption.clip.trigger('change');
+        if($(ev.target).val() == 'edit-speakers') {
+            this.owner.editSpeakers();
+            this.clip.trigger('change');
             return;
         }
 
@@ -534,5 +502,5 @@ SPINDLE.Caption.callbacks = {
             clips.at(i).set('speaker', newSpeaker);
         }
     }
-        
-};
+
+});
