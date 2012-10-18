@@ -48,6 +48,7 @@ SPINDLE.Editor.prototype = {
         self.player = $('#player')
             .bind("timeupdate", $.proxy(Editor.callbacks.update, self))
             .get(0);
+        self.popcorn = Popcorn('#player');
 
         self.status("fetching item...");
         item.fetch().success(function () {
@@ -122,16 +123,6 @@ SPINDLE.Editor.prototype = {
             self = this,
             prevSpeaker = null;
 
-        // Track changes
-        self.track.get('speakers').on('change', dirty);
-        self.track.get('clips').on('change', dirty);
-        self.track.get('clips').on('add', dirty);
-
-        function dirty(obj, changed) {
-            obj.dirty = true;
-            self.dirty(true);
-        }
-
         // Set up drop down menus
         $('.dropdown-toggle').dropdown();
         $('#speed-menu a').bind('click', function () {
@@ -143,7 +134,7 @@ SPINDLE.Editor.prototype = {
 
         // Create editable caption views
         this.track.get('clips').each(function(clip, i) {
-            var isSpeakerChange = (i == 0) || clip.get('speaker') !== prevSpeaker,            
+            var isSpeakerChange = (i == 0) || clip.get('speaker') !== prevSpeaker, 
                 caption = new Caption(self, clip, false, isSpeakerChange);
 
             clip.caption = caption;
@@ -151,7 +142,21 @@ SPINDLE.Editor.prototype = {
             if(clip.get('edited')) self.editedCount++;
 
             prevSpeaker = clip.get('speaker');
+
+            self.popcorn.subtitle({
+                start: clip.get('intime'),
+                end: clip.get('outtime'),
+                text: clip.get('caption_text')
+            });
         });
+            
+        // Track changes
+        self.track.get('speakers').on('change add', this.onSpeakerChange, this);        
+        this.onSpeakerChange();
+
+        self.track.get('clips').on('change add', dirty);
+
+        function dirty(obj, changed) { self.dirty(true); } 
 
         // Bind key events, button clicks
         $(document).bind("keydown", $.proxy(Editor.callbacks.keydown, this)); 
@@ -267,13 +272,12 @@ SPINDLE.Editor.prototype = {
      */
     // Show the dialog
     editSpeakers: function () {
-        this.updateModalDialog();
         $("#edit-speaker-modal").modal();
     },
 
     // Update the speaker-selection menu of the dialog with current
     // values
-    updateModalDialog: function (selected) {
+    onSpeakerChange: function (selected) {
         var self = this, select, option;
 
         select = $("<select />")
@@ -301,20 +305,16 @@ SPINDLE.Editor.prototype = {
         $("#edit-speaker-select").replaceWith(select);
     },
 
-    // Update the speaker-selection menus of all the Caption elements,
-    // after editing
-    updateSpeakerSelectors: function () {
-        this.track.get('clips').each(function (clip, idx) {
-            clip.caption.updateSpeakerSelector();
-        });
-    },
 
     /*
      * Jump to clip at given array index
      */
     jumpToIdx: function (idx) {
         this.playIdx = this.justSelectedIdx = idx;
-        this.player.currentTime = this.track.get('clips').at(idx).get('intime');
+        try {
+            this.player.currentTime = this.track.get('clips').at(idx).get('intime');
+        } catch(e) {
+        }
         this.redisplay();
     },
 
@@ -563,9 +563,6 @@ SPINDLE.Editor.callbacks = {
         
         editor.track.get('speakers').push(speaker);
         newSpeakerInput.val('');
-        editor.updateModalDialog(speaker);
-        editor.updateSpeakerSelectors();
-        editor.dirty(true);
     },
 
     renameSpeaker: function () {
@@ -576,9 +573,6 @@ SPINDLE.Editor.callbacks = {
         
         speaker.set('name', speakerNameInput.val());
         speakerNameInput.val('');
-        editor.updateModalDialog(speaker);
-        editor.updateSpeakerSelectors();
-        editor.dirty(true);
     },
     
     exportLink: function (ev) {

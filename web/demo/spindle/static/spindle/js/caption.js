@@ -8,12 +8,13 @@
  *
  */
 SPINDLE.Caption = 
-    function (owner, clip, active, isSpeakerChange) {
+    function (owner, clip, active) {
         this.owner = owner;
         this.clip = clip;
         this.clip.caption = this;
+        this.clip.on('change', this.onChange, this);
+
         this.active = active;
-        this.isSpeakerChange = isSpeakerChange;
         this.makeElements();
     };
     
@@ -65,7 +66,6 @@ SPINDLE.Caption.prototype = {
     /* Properties */
     clip: undefined,
     active: false,
-    isSpeakerChange: false,
 
     /* References to DOM elements */
     dom: undefined,             // enclosing tag
@@ -116,33 +116,63 @@ SPINDLE.Caption.prototype = {
         this.para = para[0];
         this.speakerSelect = speaker[0];
     },
-        
-    /*
-     * Generate speaker-selector popups
-     */
+     
+    onChange: function () {
+        var self = this,
+            track = this.clip.get('track'),
+            speaker = this.clip.get('speaker'),
+            speakers = track.get('speakers'),
+            clips = track.get('clips'),
+            idx = clips.indexOf(this.clip),
+            isSpeakerChange = idx == 0
+                || clips.at(idx - 1).get('speaker') !== this.clip.get('speaker');
+               
+        $(this.input).val(this.clip.get('caption_text'));
 
-    // Re-generate the speaker menu, after speakers are edited
-    updateSpeakerSelector: function () {
-        var newSelector = this.makeSpeakerSelector();
-        $(this.speakerSelect).replaceWith(newSelector);
-        this.speakerSelect = newSelector.get(0);
+        if(this.clip.get('begin_para')) {
+            $(this.para).addClass('active');
+        } else {
+            $(this.para).removeClass('active');
+        }
+
+        if(speaker)
+            $(this.speakerSelect).val(speaker.cid);
+
+        if(isSpeakerChange)
+            $(this.speakerSelect).addClass('speaker-change');
+        else
+            $(this.speakerSelect).removeClass('speaker-change');
     },
     
-    // Generate the DOM element
+    // Re-generate the speaker menu, after speakers are edited
+    onSpeakerChange: function () {
+        this.makeSpeakerSelector(this.speakerSelect);
+    },
+    
+    // Generate the speaker selector
     makeSpeakerSelector: function (elem) {
         var self = this,
             select, option,
-            Caption = SPINDLE.Caption;
-        
+            Caption = SPINDLE.Caption,
+            track = this.owner.track,
+            speakers = track.get('speakers'),
+            clips = track.get('clips'),
+            idx = clips.indexOf(this.clip);
+            
+        if(idx == -1) return;    // HACK FIXME
+
+        var isSpeakerChange = idx == 0
+                || clips.at(idx - 1).get('speaker') !== this.clip.get('speaker');
+
         if(elem === undefined) {
-            select = $("<select />")
-                .addClass("speaker-selector");
+            select = $("<select />").addClass("speaker-selector");
         } else {
-            select = elem;
+            select = $(elem);
+            select.html('');
         }
 
-        select.bind("change", Caption.callbacks.changeSpeaker);
-        if(this.isSpeakerChange) select.addClass("speaker-change");
+        select.bind("change", Caption.callbacks.changeSpeaker);        
+        if(isSpeakerChange) select.addClass("speaker-change");
 
         option = $("<option />")
             .html("(no speaker)")
@@ -150,10 +180,11 @@ SPINDLE.Caption.prototype = {
         if(! self.clip.get('speaker')) option.attr('selected', 'selected');
         select.append(option);
 
-        if(this.owner.track.get('speakers').length) {
-            this.owner.track.get('speakers').each(function(speaker, idx) {
+        if(speakers.length) {
+            speakers.each(function(speaker, idx) {
                 option = $("<option />")
                     .html(speaker.get('name') + ": ")
+                    .attr('value', speaker.cid)
                     .data("speaker", speaker);
 
                 if(speaker === self.clip.get('speaker'))
@@ -166,6 +197,8 @@ SPINDLE.Caption.prototype = {
             select.append(option);
         }
         
+        speakers.on('add change remove', this.onSpeakerChange, this);
+
         option = $("<option />")
             .html("Edit speakers...")
             .attr('value', "edit-speakers");
@@ -223,21 +256,10 @@ SPINDLE.Caption.prototype = {
                 this.owner.updateStats();
             }
         }
-
-        if(this.clip.get('edited')) this.owner.dirty(true); 
     },
 
-    text: function (setTo) {
-        if(setTo === undefined) return $(this.input).val();
-        
-        var oldText = this.clip.get('caption_text');
-        this.clip.set('caption_text', setTo);        
-        $(this.input).val(setTo);
-        
-        if(oldText !== this.clip.get('caption_text')) this.edited(true);
-        this.redisplay();
-
-        return setTo;
+    text: function () {
+        return $(this.input).val();
     },
 
     begin_para: function (setTo) {
@@ -284,7 +306,8 @@ SPINDLE.Caption.prototype = {
         var self = this;
 
         $(self.dom).remove();
-        self.owner.removeClip(self.clip);
+        self.clip.off('change');
+        self.clip.collection.remove(self.clip);
     },
 
     insertSentenceBreak: function (ch) {
@@ -293,15 +316,15 @@ SPINDLE.Caption.prototype = {
         
         if(point == text.length) {
             var nextClip = this.owner.clipAfter(this.clip),
-                nextText = nextClip.caption.text(),
+                nextText = nextClip.get('caption_text'),
                 newNextText = nextText.replace(/^(\s*)(.)/, function(m, ws, letter) {
                     return letter.toUpperCase();
                 });
 
             newText = text + ".";
 
-            this.text(newText);
-            nextClip.caption.text(newNextText);
+            this.clip.set('caption_text', newText);
+            nextClip.set('caption_text', newNextText);
 
             this.owner.editClip(nextClip);
             nextClip.caption.point(0);
@@ -314,7 +337,7 @@ SPINDLE.Caption.prototype = {
                     return letter.toUpperCase();
                 });
             
-            this.text(newText);
+            this.clip.set('caption_text', newText);
 
             this.point(point + 1);
         }
@@ -326,7 +349,7 @@ SPINDLE.Caption.prototype = {
             beforeText = text.substring(0, point).replace(/\s*$/, ''),
             afterText = text.substring(point).replace(/^\s*/, ''),
             newText = beforeText + ', ' + afterText;
-        this.text(newText);
+        this.clip.set('caption_text', newText);
         this.point(beforeText.length + 1);
     },
 
@@ -349,50 +372,49 @@ SPINDLE.Caption.prototype = {
 
             self = this;
         
+        // Insert new clip into transcript
+        self.clip.collection.add(newClip);
+
         // Create caption for newly inserted clip
         newCaption = new SPINDLE.Caption(self.owner, newClip);
 
         // Insert new caption into the page
         $(self.dom).after(newCaption.dom);
 
-        // Insert new clip into transcript
-        self.owner.insertClipAfter(newClip, self.clip);
-
         self.owner.editClip(newClip);
         newCaption.point(0);
 
         // Update this clip
         self.clip.set('outtime', splitTime);
-        self.text(text.substring(0, point));
+        self.clip.set('caption_text', text.substring(0, point));
     },
     
 
     /* Join with prev */
     join: function () {
-        var prevClip = this.owner.clipBefore(this.clip),
-            self = this;
+        var idx = this.clip.collection.indexOf(this.clip),
+            prevClip, self = this;
 
-        if(!prevClip) {
-            return; 
-        }
+        if(idx == 0)
+            return;
+        else
+            prevClip = this.clip.collection.at(idx - 1);
 
-        // Remove clip from transcript
-        self.clip.collection.remove(self.clip);
 
         // Update previous clip 
-        var prevText = prevClip.caption.text(),
+        var prevText = prevClip.get('caption_text'),
             point = prevText.length;
         prevClip.set('outtime', self.clip.get('outtime'));
         prevText = prevText + " " + self.text();
         prevText = prevText.replace(/\s+/, ' ');
-
-        // ... and edit the caption
-        prevClip.caption.text(prevText);
-        self.owner.editClip(prevClip);
-        prevClip.caption.point(point); 
+        prevClip.set('caption_text', prevText);
 
         // Remove ourselves from DOM      
         self.delete();      
+
+        // ... and edit the caption
+        self.owner.editClip(prevClip);
+        prevClip.caption.point(point); 
     }
 };
 
@@ -480,27 +502,27 @@ SPINDLE.Caption.callbacks = {
 
     changeText: function(ev) {
         var caption = SPINDLE.Caption.fromDOM(this);
-        caption.text($(this).val());
+        caption.clip.set('caption_text', $(this).val());
     },
 
     toggleBeginPara: function(ev) {
         var caption = SPINDLE.Caption.fromDOM(this);
         $(this).button('toggle');
         caption.clip.set('begin_para', $(this).hasClass('active'));
-        caption.owner.dirty(true);
     },
 
     changeSpeaker: function () {
         var caption = SPINDLE.Caption.fromDOM(this),
-            clips = caption.owner.track.get('clips'),
+            track = caption.clip.track,
             clip = caption.clip,
+            clips = clip.collection,
             oldSpeaker = clip.get('speaker'),
             newSpeaker = caption.speaker(),
             idx;
 
         if($(this).val() == 'edit-speakers') {
             caption.owner.editSpeakers();
-            caption.speaker(oldSpeaker);
+            caption.clip.trigger('change');
             return;
         }
 
@@ -509,14 +531,8 @@ SPINDLE.Caption.callbacks = {
         for(var i = idx;
             i < clips.length && clips.at(i).get('speaker') === oldSpeaker;
             i++) {
-            clips.at(i).caption.speaker(newSpeaker);
+            clips.at(i).set('speaker', newSpeaker);
         }
-
-        caption.isSpeakerChange = (idx == 0)
-            || caption.clip.get('speaker') !== clips.at(idx-1).get('speaker');
-        caption.updateSpeakerSelector();
-
-        caption.owner.dirty(true);
     }
         
 };
