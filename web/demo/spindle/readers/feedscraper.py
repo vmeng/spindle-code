@@ -2,6 +2,7 @@ import feedparser
 import pprint
 from time import mktime
 from datetime import datetime
+from django.utils.timezone import utc
 from urlparse import urlparse
 from os.path import basename, splitext
 # from spindle.models import Item
@@ -16,7 +17,8 @@ def rss_to_records(url):
         try:
             dct['duration'] = int(entry['duration'])
             dct['name'] = entry['title']
-            dct['published'] = datetime.fromtimestamp(mktime(entry['published_parsed']))
+            timestamp = mktime(entry['published_parsed'])
+            dct['published'] = datetime.fromtimestamp(timestamp).replace(tzinfo=utc)
 
             for link in entry.links:
                 if 'shorttype' in link:
