@@ -19,21 +19,21 @@
            value="{{ search }}"
            placeholder="Search titles and URLs" />
       <button type="submit" class="btn">Search</button>
-  </form>           
+  </form>
 
-  <p>Showing {{ range }} {{ count }} items {{ searchdescription }}.</p>
+  <p>Showing {{ range }} {{ count }} items {{ search_description }}.</p>
 <p>
-  <a href="{{ prevUrl }}"><i class="icon-backward"></i> Prev page </a>          
-  <a href="{{ nextUrl }}" class="pull-right">Next page <i class="icon-forward"></i></a>
+  <a href="{{ prev_url }}"><i class="icon-backward"></i> Prev page </a>
+  <a href="{{ next_url }}" class="pull-right">Next page <i class="icon-forward"></i></a>
   <table class="table table-striped">
     <thead>
       <tr>
-        <td><a href="{{ orderUrls.name }}">Name</a></td>
-        <td><a href="{{ orderUrls.published }}">Date</a></td>
-        <td><a href="{{ orderUrls.duration }}">Length</a></td>
-        <td><a href="{{ orderUrls.edited_fraction }}">% edited</a></td>
+        <td><a href="{{ order_urls.name }}">Name</a></td>
+        <td style="width:6em"><a href="{{ order_urls.published }}">Date</a></td>
+        <td style="width:5em"><a href="{{ order_urls.duration }}">Length</a></td>
+        <td style="width:5em"><a href="{{ order_urls.track_count }}">Transcripts</a></td>
       </tr>
-    </thead>          
+    </thead>
     <tbody>
       {% for item in items %}
         <tr>
@@ -42,13 +42,13 @@
             {% if item.video_url %}
               <p class="url"> {{item.video_url}}</p>
             {% endif %}
-            {% if item.audio_url %}      
+            {% if item.audio_url %}
               <p class="url"> {{item.audio_url}}</p>
-            {% endif %}      
-          </td>      
+            {% endif %}
+          </td>
           <td>{{ item.published|date:"SHORT_DATE_FORMAT" }}</td>
           <td>{{ item.duration|duration }}</td>
-          <td>{{ item.edited_fraction|percent_complete }}</td>      
+          <td>{{ item.track_count }}</td>
         </tr>
       {% endfor %}
     </tbody>

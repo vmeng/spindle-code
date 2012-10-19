@@ -34,15 +34,9 @@ class ItemHash():
 
 # The Item manager class
 class ItemManager(models.Manager):
-
-    # Count total number of clips and number of edited clips
-    def with_counts(self, *args, **kwargs):
-        return self.annotate_counts(self.get_query_set())
-    
-    def annotate_counts(self, queryset): 
-        return queryset \
-            .annotate(clip_count=Count('track__clip')) \
-            .annotate(edited_clip_count=Sum('track__clip__edited')) 
+    def get_query_set(self):
+        return super(ItemManager, self).get_query_set() \
+            .annotate(track_count=Count('track'))
 
     def bulk_fetch(self, select_related=False):
         """Return hashes of all items in the database indexed by URL.
@@ -57,31 +51,31 @@ class ItemManager(models.Manager):
         else:
             query = self.all()
 
-        for item in self.all():
+        for item in query:
             if item.video_url:
                 ret.video[item.video_url] = item
             if item.audio_url:
                 ret.audio[item.audio_url] = item
         return ret
-            
+
 
 # The Item instance class
 class Item(models.Model):
     objects             = ItemManager()
 
-    name                = models.CharField('Title', max_length=200)
+    name                = models.CharField('Title', max_length=1000)
     video_url           = models.URLField('Video URL', max_length=1000, blank=True)
     audio_url           = models.URLField('Audio URL', max_length=1000, blank=True)
     duration            = models.IntegerField('Length in seconds')
     published           = models.DateTimeField('Date published')
-    
+
     # RSS keywords/categories, in CSV form
     keywords            = models.TextField(blank=True)
 
     # Other RSS information
     video_guid          = models.CharField(max_length=500, blank=True)
     audio_guid          = models.CharField(max_length=500, blank=True)
-    licence_long_string = models.CharField(max_length=200, blank=True)        
+    licence_long_string = models.CharField(max_length=200, blank=True)
 
     # Version tracking
     updated             = models.DateTimeField('Last updated',
@@ -97,31 +91,25 @@ class Item(models.Model):
     # Return the fraction of this item's transcript that has been
     # edited, or None if there are no existing clips at all.
     def edited_fraction(self):
-        try:
-            clip_count = self.clip_count
-            edited_clip_count = self.edited_clip_count
-        except AttributeError:
-            counts = self.track_set.aggregate(
-                Sum('clip_count'), Sum('edited_clip_count'))
-            clip_count = counts['clip_count__sum']
-            edited_clip_count = counts['edited_clip_count__sum']
+        tracks = self.track_set.all()
+        clip_count = sum(track.clip_count for track in tracks)
+        edited_clip_count = sum(track.edited_clip_count for track in tracks)
 
         if not clip_count: return None
-        
         return float(edited_clip_count) / clip_count
 
     # Push this item onto the transcription queue
     def request_transcription(self, engine_name='spindle.transcribe.sphinx'):
         transcribe = spindle.transcribe.engine_map[engine_name]['task']
-         
+
         task = (transcribe.s(self)
                 | spindle.tasks.save_transcription.s(self))()
         task_record = TranscriptionTask(item = self,
                                         task_id = task.parent.id,
                                         engine = engine_name)
         task_record.save()
-            
-    # Versioning stuff    
+
+    # Versioning stuff
     def archive(self, msg=None, commit=True):
         archive = ArchivedItem(item=self)
         archive.save()
@@ -133,7 +121,7 @@ class Item(models.Model):
         for track in self.track_set.select_related('speaker', 'clip'):
             for speaker in track.speaker_set.all(): yield speaker
             for clip in track.clip_set.all(): yield clip
-            yield track                    
+            yield track
         yield self
 
     def save(self, *args, **kwargs):
@@ -165,12 +153,12 @@ class ArchivedItem(models.Model):
 
     def deserialized(self):
         return serializers.deserialize('json', self.json)
-        
-    def write_diffable_text(self, outfile):      
+
+    def write_diffable_text(self, outfile):
         # Ensure we can iterate several times over serialized if it's
         # a generator
         objs = [obj for obj in self.deserialized()]
-        
+
         def extract(model):
             return [o.object for o in objs
                     if isinstance(o.object, model)]
@@ -195,9 +183,9 @@ class ArchivedItem(models.Model):
             speakers = filter(lambda s: s.track_id == track.id,
                               all_speakers)
             clips = sorted(filter(lambda c: c.track_id == track.id,
-                                  all_clips), 
+                                  all_clips),
                            key=operator.attrgetter('intime'))
-            
+
             outfile.write(u'\n\n\nTrack: {}\n'.format(track.name))
             write_fields(track, exclude=['item', 'name'])
 
@@ -220,7 +208,7 @@ class ArchivedItem(models.Model):
         self.write_diffable_text(outfile)
         return outfile.getvalue()
 
-    
+
     def diff(self, old_version=None):
         """Diff this revision of an item with another revision.
         If `old_version' is None, diffs with the previous revision."""
@@ -234,13 +222,13 @@ class ArchivedItem(models.Model):
             if previous_versions:
                 old_version = previous_versions[0]
 
-        tmpfile_1 = tempfile.NamedTemporaryFile()        
+        tmpfile_1 = tempfile.NamedTemporaryFile()
         self.write_diffable_text(tmpfile_1)
 
         if old_version is None:       # No previous version: diff with /dev/null
             tmpfile_2 = open("/dev/null")
         else:
-            tmpfile_2 = tempfile.NamedTemporaryFile()        
+            tmpfile_2 = tempfile.NamedTemporaryFile()
             old_version.write_diffable_text(tmpfile_2)
 
         diff_file = tempfile.NamedTemporaryFile()
@@ -250,7 +238,7 @@ class ArchivedItem(models.Model):
                 tmpfile_1.name],
                                   stdout=diff_file,
                                   stderr=sys.stderr)
-        
+
         diff_file.seek(0, 0)
         for line in diff_file: yield line
 
@@ -260,20 +248,18 @@ class ArchivedItem(models.Model):
         objects = self.deserialized()
         for obj in objects:
             obj.save()
-        
+
         return None
 
 
-#
 # Transcription tasks associated to an item
-#
 class TranscriptionTask(models.Model):
     queue       = models.Manager()
     item        = models.ForeignKey(Item)
     task_id     = models.CharField(max_length=100, blank=True)
-    engine      = models.CharField(max_length=100, blank=True) 
-    
-    def __unicode__(self): 
+    engine      = models.CharField(max_length=100, blank=True)
+
+    def __unicode__(self):
         return "{} {} {}".format(
             self.item.name,
             self.engine,
@@ -282,7 +268,7 @@ class TranscriptionTask(models.Model):
     # Return the Celery task object, if any
     def async_result(self):
         if self.task_id:
-            return BaseAsyncResult(self.task_id) 
+            return BaseAsyncResult(self.task_id)
         else:
             return None
 
@@ -293,10 +279,23 @@ class TranscriptionTask(models.Model):
         return self.async_result().result
 
 
-#
-# A track is a collection of clips, and possibly of speaker names.
-#                
+# Aggregate function to sum booleans with type cast in PostgreSQL
+class SumAsIntSQL(models.sql.aggregates.Aggregate):
+    sql_function = 'SUM'
+    sql_template = 'SUM( %(field)s :: int)'
 
+class SumAsInt(models.Aggregate):
+    name = 'SumInt'
+
+    def add_to_query(self, query, alias, col, source, is_summary):
+        aggregate = SumAsIntSQL(col,
+                                source=source,
+                                is_summary=is_summary,
+                                **self.extra)
+        query.aggregates[alias] = aggregate
+
+
+# A track is a collection of clips, and possibly of speaker names.
 from django.conf.global_settings import LANGUAGES
 TRACK_KINDS = (('captions', 'Captions'),   # What's the difference
                ('subtitles', 'Subtitles'), # between these two?
@@ -309,18 +308,19 @@ PUBLISHED_STATES = (('no', 'No'),
                     ('public', 'Public'))
 PUBLISH_STATES = ('hidden', 'public')
 
+
 class TrackManager(models.Manager):
     # Count # of clips and edited clips
     def get_query_set(self):
         return super(TrackManager, self).get_query_set() \
             .annotate(clip_count=Count('clip')) \
-            .annotate(edited_clip_count=Sum('clip__edited')) 
+            .annotate(edited_clip_count=SumAsInt('clip__edited'))
 
 class Track(models.Model):
     objects = TrackManager()
 
     item = models.ForeignKey(Item)
-    name = models.CharField(max_length=200,
+    name = models.CharField(max_length=1000,
                             blank=True,
                             default='Transcript')
     kind = models.CharField(max_length=10,
@@ -353,12 +353,12 @@ class Track(models.Model):
 
     # Make an empty transcript for this item
     @classmethod
-    def empty(cls, item, cliplength=4.0, **kwargs): 
+    def empty(cls, item, cliplength=4.0, **kwargs):
         if not item.duration:
             raise Error(u"Unknown or zero item duration for item {}".format(item))
-        
+
         track = Track(item=item, **kwargs)
-        intime = 0.0 
+        intime = 0.0
         while intime < item.duration:
             clip = Clip(track=track,
                         intime=intime,
@@ -374,14 +374,12 @@ class Track(models.Model):
     # Fraction of this transcript that has been edited, or None if
     # there are no existing clips at all.
     def edited_fraction(self):
-        clip_count = self.clip_count
-        edited_clip_count = self.edited_clip_count
-        if not clip_count: return None
-        return float(edited_clip_count) / clip_count
-        
+        if not self.clip_count: return None
+        return float(self.edited_clip_count) / self.clip_count
+
 
     # Export as plain text
-    def write_plaintext(self, outfile):        
+    def write_plaintext(self, outfile):
         speaker_id = None
         for clip in self.clip_set.all():
             if clip.begin_para:
@@ -413,7 +411,7 @@ class Track(models.Model):
                 speaker_elem.tail = ''
 
             # Yuck.
-            if speaker_elem is not None:                
+            if speaker_elem is not None:
                 speaker_elem.tail += clip.caption_text.strip() + " "
             else:
                 para.text += clip.caption_text.strip() + " "
@@ -437,7 +435,7 @@ class Speaker(models.Model):
     name = models.CharField(max_length=100)
     def __unicode__(self):
         return self.name
-    
+
 #
 # A transcription track is made up of many clips. Each clip is a small
 # amount of text ('caption_text'), (possibly) spoken by a given
@@ -453,7 +451,7 @@ class Clip(models.Model):
     edited       = models.BooleanField()
     speaker      = models.ForeignKey(Speaker, null=True, blank=True)
     begin_para   = models.BooleanField()
-        
+
     class Meta:
         ordering = ['intime']
 

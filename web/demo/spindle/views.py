@@ -31,16 +31,15 @@ import spindle.transcribe.sphinx as sphinx
 # List items for transcription
 @login_required
 def itemlist(request):
-    query = request.GET
+    params = request.GET.dict()
+    return do_itemlist(request, **params)
 
-    # Find search parameters from query, or set defaults
-    limit = int(query['limit']) if 'limit' in query else 15
-    offset = int(query['offset']) if 'offset' in query else 0
-    search = query['search'] if ('search' in query and len(query['search'])) else None
-    
-    order_column = query['sortby'] if 'sortby' in query else 'published'
-    order_direction = int(query['sortdir']) if 'sortdir' in query else -1
-    
+def do_itemlist(request, limit=15, offset=0, search=None,
+                sort_by='published', sort_dir=-1, **kwargs):
+    offset = int(offset)
+    limit = int(limit)
+    sort_dir = int(sort_dir)
+
     # Construct the base search, without range slicing
     def base_query():
         if search:
@@ -52,78 +51,64 @@ def itemlist(request):
             return Item.objects.all()
 
     # Sort
-    if order_column == 'edited_fraction':
-        # Django doesn't have an aggregate function to take the ratio
-        # of edited clips to total clips, so we have to sort in Python
-        query = Item.objects.annotate_counts(base_query())
-        query = query.filter(clip_count__gt=0)
-        count = query.count()
-        items = sorted(query, key=Item.edited_fraction, reverse=True)        
-        items = items[offset:offset+limit]
-    else:
-        count = base_query().count()        
-        query = base_query().order_by(
-            order_column if order_direction > 0 else "-" + order_column)
-#        query = Item.objects.annotate_counts(query)
-        items = query[offset:offset+limit]
-    
+    count = base_query().count()
+    query = base_query().order_by(sort_by if (sort_dir > 0) else ("-" + sort_by))
+    items = query[offset:offset+limit]
 
     # Count and slice
 
     # Construct readable descriptions of search and range
     if len(items) < limit:
-        rangeDescription = "all"
+        range_description = "all"
     else:
-        rangeDescription = "{} to {} of ".format(
+        range_description = "{} to {} of ".format(
             offset+1,
             min(offset+limit, count))
-    searchDescription = "containing '{}'".format(search) if search else "in database"
-    
+    search_description = "containing '{}'".format(search) if search else "in database"
+
     # Construct URLs for changing slice and sorting methods
-    baseURL = '?'
-    baseParams = QueryDict('').copy()
-    baseParams.update({ 'search': search if search else '',
-                        'sortby': order_column,
-                        'sortdir': order_direction,
-                        'limit': limit })
+    base_url = '?'
+    base_params = QueryDict('').copy()
+    base_params.update({'search': search if search else '',
+                        'sort_by': sort_by, 'sort_dir': sort_dir, 'limit': limit })
 
-    nextParams = baseParams.copy()
-    prevParams = baseParams.copy()
+    next_params = base_params.copy()
+    prev_params = base_params.copy()
 
-    nextParams.update({ 'offset': min(offset + limit, count - 1) })
-    prevParams.update({ 'offset': max(offset - limit, 0) })
-                          
-    nextUrl = baseURL + nextParams.urlencode()
-    prevUrl = baseURL + prevParams.urlencode()
+    next_params.update({ 'offset': min(offset + limit, count - 1) })
+    prev_params.update({ 'offset': max(offset - limit, 0) })
 
-    orderUrls = {};
+    next_url = base_url + next_params.urlencode()
+    prev_url = base_url + prev_params.urlencode()
+
+    order_urls = {};
     for col in ['item_id', 'name', 'video_url',
                 'media_type', 'duration', 'published',
-                'edited_fraction']:
-        params = baseParams.copy()
+                'track_count']:
+        params = base_params.copy()
 
-        if(col != order_column):
-            del params['sortby']
-            params.update({ 'sortby': col })
+        if(col != sort_by):
+            del params['sort_by']
+            params.update({ 'sort_by': col })
         else:
-            del params['sortdir']
-            params.update({ 'sortdir': -order_direction })
+            del params['sort_dir']
+            params.update({ 'sort_dir': -sort_dir })
 
-        orderUrls[col] = baseURL + params.urlencode()
-    
+        order_urls[col] = base_url + params.urlencode()
+
     # Render template
     return render(request, 'spindle/itemlist.html', {
             'title': "Item list",
             'items': items,
-            
-            'range': rangeDescription,
+
+            'range': range_description,
             'count': count,
-            'searchdescription': searchDescription,
-            
+            'search_description': search_description,
+
             'search': search if search else '',
-            'nextUrl': nextUrl,
-            'prevUrl': prevUrl,
-            'orderUrls': orderUrls,                                   
+            'next_url': next_url,
+            'prev_url': prev_url,
+            'order_urls': order_urls,
             })
 
 
@@ -174,7 +159,7 @@ def scrape(request):
 UPLOAD_FILE_TYPES = (('xmp', 'XMP (Adobe Premiere) file'),
                      ('srt', 'SRT/WebVTT file'),
                      ('koemei', 'Koemei XML transcript'),
-                     ('sphinx', 'Raw Sphinx output'))                     
+                     ('sphinx', 'Raw Sphinx output'))
 class UploadTrackForm(forms.Form):
     file_type = forms.ChoiceField(choices=UPLOAD_FILE_TYPES)
     caption_file = forms.FileField(required=True)
@@ -214,11 +199,11 @@ def item_metadata(request, item_id):
 
 @login_required
 def item_add_track(request, item_id):
-    item = get_object_or_404(Item, pk=item_id)    
+    item = get_object_or_404(Item, pk=item_id)
     new_track_form = upload_track_form = request_transcript_form = None
 
     if 'new_track' in request.POST:
-        new_track_form = TrackMetadataForm(request.POST)        
+        new_track_form = TrackMetadataForm(request.POST)
         if new_track_form.is_valid():
             data = new_track_form.cleaned_data
             track = Track(item=item, **data)
@@ -230,10 +215,10 @@ def item_add_track(request, item_id):
             data = upload_track_form.cleaned_data
             file_type = data['file_type']
             upload = request.FILES['caption_file']
-            
-            if file_type == 'srt':            
+
+            if file_type == 'srt':
                 speakers = []
-                clips = vtt.read(upload) 
+                clips = vtt.read(upload)
             elif file_type == 'xmp':
                 speakers = []
                 clips = xmp.read(upload)
@@ -247,7 +232,7 @@ def item_add_track(request, item_id):
                 clips = sphinx.reader.read_clips(upload)
             else:
                 raise Exception('Unrecognised caption file format')
-            
+
             track = Track(item=item, name=upload.name)
             track.save()
 
@@ -269,14 +254,14 @@ def item_add_track(request, item_id):
             engine = request_transcript_form.cleaned_data['engine']
             if engine not in spindle.transcribe.engine_map:
                 raise Exception(u"Bad value for engine: {}".format(engine))
-            
+
             item.request_transcription(engine)
             return redirect('spindle_queue')
 
     if new_track_form is None: new_track_form = TrackMetadataForm()
     if upload_track_form is None: upload_track_form = UploadTrackForm()
     if request_transcript_form is None: request_transcript_form = RequestTranscriptForm()
-    
+
     return render(request, 'spindle/item_add_transcript.html', {
             'item': item,
             'new_track_form': new_track_form,
@@ -321,7 +306,7 @@ class TrackMetadataForm(ModelForm):
         model = Track
         fields = ('name', 'kind', 'lang',
                   'publish_text', 'publish_vtt', 'publish_transcript')
-        
+
 class TrackMetaView(UpdateView):
     model = Track
     template_name = "spindle/track_meta.html"
@@ -348,12 +333,12 @@ def keywords(request, track_id):
     item = track.item
     text = (clip.caption_text for clip in track.clip_set.all())
     kw, ngrams = collocations.keywords_and_ngrams(text)
-             
+
     def keyword_html(sorted_x):
         tags = ""
         for (word, ll) in sorted_x[0:100]:
             # Word size determined by log likelihood
-            # only using 5 classes but we could follow wikipedia tag cloud equation 
+            # only using 5 classes but we could follow wikipedia tag cloud equation
             # using tmax and tmin to determine the classes, ignored at the moment
             # until we know what we want as output
             size = int(ll / 20)
@@ -379,7 +364,7 @@ def keywords(request, track_id):
             'ngramblock': ngram_html(ngrams),
             'oxitems_keywords': item.keywords
             })
- 
+
 
 # Transcription queue
 @login_required
@@ -397,12 +382,12 @@ def queuepartial(request):
 
 def get_queue():
     def sort_key(req):
-        try: 
+        try:
             return ['PROGRESS',
                     'DOWNLOADING',
                     'TRANSCODING',
                     'PENDING',
-                    'SUCCESS',                    
+                    'SUCCESS',
                     'FAILURE'].index(req['task'].status())
         except ValueError:
             return 0
@@ -418,8 +403,8 @@ def get_queue():
                         'SUCCESS' : "Finished",
                         'FAILURE' : "Error"}[task.status()]
             except KeyError:
-                return "Unknown" 
-        
+                return "Unknown"
+
     queue = []
     for task in TranscriptionTask.queue.all():
         req = dict(task=task, item=task.item)
@@ -433,8 +418,9 @@ def get_queue():
             req['engine'] = ''
 
         if task.status() == 'PROGRESS' or task.status() == 'RUNNING': # FIXME
-            req['eta'] = task.result['eta']
+            res = task.result()
+            req['eta'] = res['eta']
             req['progress_bar'] = True
-            req['percent'] = int(task.result()['progress'] * 100)
+            req['percent'] = int(res['progress'] * 100)
 
     return sorted(queue, key=sort_key)
