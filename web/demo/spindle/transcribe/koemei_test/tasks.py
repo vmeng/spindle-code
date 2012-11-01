@@ -25,8 +25,11 @@ def transcribe(item):
     except:
         raise Exception("Unable to open {}".format(file_name))
 
-    data = ET.parse(infile) 
-    transcript = reader.read(data)
-    transcript['task_name'] = current_task.name
+    data = ET.parse(infile)
 
-    return transcript
+    transcript = reader.read(data)
+    save_transcription(item, clips = transcript['clips'],
+                       speakers = transcript['speakers'],
+                       engine = current_task.name,
+                       raw_files = raw_files,
+                       logger = logger)

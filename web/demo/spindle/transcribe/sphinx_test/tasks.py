@@ -16,7 +16,6 @@ def transcribe(item):
     infile = open(os.path.join(data_dir, item.id))
 
     clips = list(reader.read_clips(infile))
-    return dict(task_name=current_task.name,
-                clips=clips,
-                raw_files=[])   # FIXME
-                
+
+    save_transcription(item, clips=clips, engine=current_task.name,
+                       logger = logger)

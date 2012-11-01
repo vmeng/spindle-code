@@ -102,10 +102,8 @@ class Item(models.Model):
     def request_transcription(self, engine_name='spindle.transcribe.sphinx'):
         transcribe = spindle.transcribe.engine_map[engine_name]['task']
 
-        task = (transcribe.s(self)
-                | spindle.tasks.save_transcription.s(self))()
-        task_record = TranscriptionTask(item = self,
-                                        task_id = task.parent.id,
+        task = transcribe.delay(self)
+        task_record = TranscriptionTask(item = self, task_id = task.id,
                                         engine = engine_name)
         task_record.save()
 

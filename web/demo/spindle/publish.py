@@ -1,4 +1,4 @@
-"""Functions relating to publishing transcripts and RSS as static files."""
+"""Publish Spindle transcripts and RSS as static files."""
 
 import os
 import xml.etree.ElementTree as ET
@@ -70,7 +70,7 @@ PUBLISH_TYPES = (('publish_text', '.txt', 'Plain text transcript',
                   'text/html', RSS_TRANSCRIPT_REL, 'write_html'))
 
 
-def publish_feed(verbose = False, debug = False):
+def publish_feed(debug = False):
     """Republish the incoming RSS feed, adding <category> tags for
     generated keywords and <link> tags to published transcripts."""
     in_url = settings.SPINDLE_SCRAPE_RSS_URL
@@ -129,15 +129,15 @@ def publish_feed(verbose = False, debug = False):
         ET.register_namespace(prefix, uri)
 
     tree = ET.ElementTree(rss)
-    outfile = open(os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
-                                settings.SPINDLE_PUBLISH_RSS_FILENAME),
-                   'wb')
+    with open(os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
+                           settings.SPINDLE_PUBLISH_RSS_FILENAME),
+              'wb') as outfile:
+        tree.write(outfile, encoding='utf-8', xml_declaration=True)
 
-    tree.write(outfile, encoding='utf-8', xml_declaration=True)
     logger.info('Done')
 
 
-def publish_all_items(verbose = False, debug = False):
+def publish_all_items(debug = False):
     """Write out published contents for all items, as static files."""
     items = Item.objects.filter(track_count__gt=0).select_related()
     total = items.count()
@@ -165,7 +165,7 @@ def publish_item(item):
 
 
 def published_urls(item):
-    """Generator: yields descriptions of all the published URLs
+    """Generator returning descriptions of all the published URLs
     associated with 'item'.
     """
     base_name = item_basename(item)

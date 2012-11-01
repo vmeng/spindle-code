@@ -9,6 +9,7 @@ from spindle.templatetags.spindle_extras import duration as format_duration
 
 from . import reader
 from . import koemei_api as koemei
+from spindle.transcribe.save import save_transcription
 
 logger = get_task_logger(__name__)
 
@@ -31,10 +32,12 @@ def transcribe(item):
             meta={ 'progress': progress, 'eta': None,
                    'time': None, 'duration': None })
         time.sleep(5 * 60)
-        
+
     transcript = reader.read(data)
-    transcript['task_name'] = current_task.name
-    transcript['raw_files'] = [dict(content_type='text/xml',
-                                    file_name='koemei.transcript.xml',
-                                    body=ET.tostring(data))]
-    return transcript
+    raw_files = [dict(content_type='text/xml', file_name='koemei.transcript.xml',
+                      body=ET.tostring(data))]
+    save_transcription(item, clips = transcript['clips'],
+                       speakers = transcript['speakers'],
+                       engine = current_task.name,
+                       raw_files = raw_files,
+                       logger = logger)
