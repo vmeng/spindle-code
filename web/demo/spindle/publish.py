@@ -4,6 +4,8 @@ import os
 import xml.etree.ElementTree as ET
 import requests
 import urlparse
+import logging
+import sys
 
 from django.conf import settings
 from django.db.models import Q
@@ -11,6 +13,9 @@ from django.db.models import Q
 from spindle.models import Item, PUBLISH_STATES
 import spindle.keywords.collocations as collocations
 import spindle.utils
+
+# Logging
+logger = logging.getLogger(__name__)
 
 # RSS namespaces to use
 RSS_NAMESPACES = {
@@ -65,16 +70,17 @@ PUBLISH_TYPES = (('publish_text', '.txt', 'Plain text transcript',
                   'text/html', RSS_TRANSCRIPT_REL, 'write_html'))
 
 
-def publish_feed(verbose=False):
+def publish_feed(verbose = False, debug = False):
     """Republish the incoming RSS feed, adding <category> tags for
     generated keywords and <link> tags to published transcripts."""
     in_url = settings.SPINDLE_SCRAPE_RSS_URL
 
-    items = spindle.models.Item.objects.bulk_fetch(select_related=True)
+    logger.info('Listing items in database...')
+    items = spindle.models.Item.objects.bulk_fetch()
 
-    print 'Getting original RSS feed to annotate...'
+    logger.info('Getting original RSS feed to annotate...')
     resp = requests.get(in_url, prefetch=False)
-    print 'Parsing RSS...'
+    logger.info('Parsing RSS...')
     rss = ET.fromstringlist(resp.iter_lines())
 
     def add_category_tag(entry, scheme, term):
@@ -84,39 +90,41 @@ def publish_feed(verbose=False):
 
     entries = rss.findall('.//entry')
     total = len(entries)
-    for index, entry in enumerate(entries[0:10]):
+    if debug: entries = entries[0:10]
+    for index, entry in enumerate(entries):
         href = entry.find('link').attrib['href']
         title = entry.find('title').text
-        print u'{:5.1f}% {:5d} {}'.format(100 * float(index) / total, index, title)
+        logger.info(u'%5.1f%% %5d %s', 100 * float(index) / total, index, title)
 
         if href in items.audio:
             item = items.audio[href]
         elif href in items.video:
             item = items.video[href]
         else:
-            print u'\t[no item found]'
+            logger.info(u'\t[no item found]')
             continue
 
         clip_count = sum(track.clip_count for track in item.track_set.all())
         if clip_count:
-            print "Keywords: "
             keywords, ngrams = item_keywords(item)
+
+            logger.info('\t%d keywords, %d ngrams', len(keywords), len(ngrams))
+            logger.debug('%s', '\tKeywords:' + ', '.join(kw for kw, _ in keywords))
+            logger.debug('%s', '\tNgrams:' + ', '.join(' '.join(ng) for ng, _ in ngrams))
+
             for keyword, ll in keywords:
                 add_category_tag(entry, RSS_KEYWORDS_SCHEME, keyword)
-                if verbose: print '\t', keyword
             for ngram, count in ngrams:
                 ngram_string = ' '.join(ngram)
                 add_category_tag(entry, RSS_NGRAMS_SCHEME, ngram_string)
-                if verbose: print '\t', ngram_string
-            print '\n'
 
         for attributes in published_urls(item):
             tag = ET.SubElement(entry, ATOM_LINK_QNAME, attributes)
-            print '\t{} {} {}'.format(attributes['rel'].split('/')[-1],
-                                      attributes['hreflang'],
-                                      attributes['href'])
+            logger.info(u'\t%s %s %s',
+                        attributes['rel'].split('/')[-1],
+                        attributes['hreflang'], attributes['href'])
 
-    print 'Writing RSS...'
+    logger.info('Writing RSS...')
     for prefix, uri in RSS_NAMESPACES.iteritems():
         ET.register_namespace(prefix, uri)
 
@@ -126,15 +134,16 @@ def publish_feed(verbose=False):
                    'wb')
 
     tree.write(outfile, encoding='utf-8', xml_declaration=True)
-    print 'Done'
+    logger.info('Done')
 
 
-def publish_all_items():
+def publish_all_items(verbose = False, debug = False):
     """Write out published contents for all items, as static files."""
     items = Item.objects.filter(track_count__gt=0).select_related()
     total = items.count()
+    if debug: items = items[0:10]
     for index, item in enumerate(items):
-        print u'{:5.1f}% {:5d} {}'.format(100 * float(index) / total, index, item.name )
+        logger.info(u'%5.1f%% %5d %s', 100 * float(index) / total, index, item.name)
         publish_item(item)
 
 
@@ -151,7 +160,7 @@ def publish_item(item):
             visibility = getattr(track, field)
             if visibility in PUBLISH_STATES:
                 with open(base_path + extension, 'wb') as outfile:
-                    print '\t{}'.format(outfile.name)
+                    logger.info(u'\twrote %s "%s"', name, outfile.name)
                     (getattr(track, method))(outfile)
 
 
