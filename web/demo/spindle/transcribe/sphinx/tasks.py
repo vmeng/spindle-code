@@ -6,7 +6,6 @@ from celery import task, current_task
 from celery.utils.log import get_task_logger
 
 from . import sphinx
-import spindle.readers.feedscraper
 import spindle.models
 from spindle.templatetags.spindle_extras import duration as format_duration
 from spindle.transcribe.save import save_transcription

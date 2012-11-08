@@ -1,5 +1,6 @@
 from django.conf.urls import patterns, include, url
 from spindle.rest_api import api_urls
+from spindle.publish import ExportedTranscriptsFeed
 import spindle.views
 
 #
@@ -42,7 +43,7 @@ urlpatterns = patterns(
     url(r'^queue/$', 'queue', name='spindle_queue'),
 
     # FIXME: should really be an API method
-    url(r'^pull/$', 'scrape', name='spindle_scrape')
+    url(r'^pull/$', 'scrape', name='spindle_scrape'),
     )
 
 # Partial views for ajax updating

@@ -9,17 +9,19 @@ import spindle.readers.feedscraper
 import spindle.models
 from spindle.templatetags.spindle_extras import duration as format_duration
 
+from spindle.publish import publish_feed, publish_all_items, publish_exports_feed, update_progress
+
 logger = get_task_logger(__name__)
 
 # Scrape the RSS feed
-@task(queue="local")
+@task(name='spindle_scrape', queue='local')
 def scrape():
     # Make a hash of all URLs in database
     urlhash = {}
-    print "Listing all URLs in database ..."
+    logger.info("Listing all URLs in database ...")
     for item in spindle.models.Item.objects.all():
         urlhash[item.audio_url] = urlhash[item.video_url] = item
-    print " ... got {} URLs".format(len(urlhash))
+    logger.info(" ... got {} URLs".format(len(urlhash)))
 
     # Scrape RSS for items
     try:
@@ -28,13 +30,14 @@ def scrape():
     except AttributeError:
         raise Exception("SPINDLE_SCRAPE_RSS_URL is blank or unset in settings.py")
 
-    print u"Scraping RSS feed at '{}' ...".format(url)
+    logger.info(u"Parsing RSS feed at '{}' ...".format(url))
     rss = spindle.readers.feedscraper.extract(url)
+    logger.info(u' ... done')
 
     def update_kw(item, entry):
         if item.keywords != entry['keywords']:
-            print u'Updating item keywords for \'{}\':\n{}\n'.format(
-                item.name, entry['keywords'])
+            logger.info(u'Updating item keywords for \'{}\':\n{}\n'.format(
+                item.name, entry['keywords']))
             item.keywords = entry['keywords']
             return True
         return False
@@ -42,7 +45,10 @@ def scrape():
     # Check for items to be added or updated
     newitems = []
 
-    for entry in rss:
+    num_entries = rss.count
+    for index, entry in enumerate(rss.items):
+        update_progress(current_task, float(index) / num_entries, '')
+
         rss_urls = [f for f in ['audio_url', 'video_url'] if f in entry]
         existing_urls = dict((f, entry[f])
                              for f in rss_urls if entry[f] in urlhash)
@@ -50,7 +56,7 @@ def scrape():
         if len(rss_urls) and not existing_urls:
             # This item doesn't exist at all yet
             item = spindle.models.Item(**entry)
-            print u"New item: '{}'".format(item.name)
+            logger.info(u"New item: '{}'".format(item.name))
             newitems.append(item)
             item.save()
         elif len(existing_urls) == len(rss_urls):
@@ -62,8 +68,8 @@ def scrape():
             existing_field, existing_url = existing_urls.items()[0]
             item = urlhash[existing_url]
             new_field = 'video_url' if existing_field == 'audio_url' else 'audio_url'
-            print u'Updating item \'{}\' to include {}=\'{}\''.format(
-                item.name, new_field, entry[new_field])
+            logger.info(u'Updating item \'{}\' to include {}=\'{}\''.format(
+                item.name, new_field, entry[new_field]))
             setattr(item, new_field, entry[new_field])
 
             # Also check for keyword update
@@ -71,12 +77,12 @@ def scrape():
 
             item.save()
 
-    print 'added {} new items to database'.format(len(newitems))
+    logger.info('added {} new items to database'.format(len(newitems)))
     return newitems
 
-@task()
+@task
 def ping():
     request = current_task.request
     status = 'Executing task id {} on {}'.format(request.id, request.hostname);
-    print status
+    logger.info(status)
     return status

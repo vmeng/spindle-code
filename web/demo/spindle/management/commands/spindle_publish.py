@@ -2,13 +2,14 @@ from django.core.management.base import BaseCommand, CommandError
 from optparse import make_option
 import logging
 
-from spindle.publish import publish_item, publish_feed, publish_all_items
+from spindle.publish import publish_item, publish_feed, \
+    publish_exports_feed, publish_all_items
 from spindle.models import Item
 
 
 class Command(BaseCommand):
     help = 'Publish items and RSS feed'
-    args = '[feed | all | <item id>]'
+    args = '[keywords | exports | all | <item id>]'
     option_list = BaseCommand.option_list + (
         make_option('--debug',
             action='store_true',
@@ -26,8 +27,10 @@ class Command(BaseCommand):
         if debug:
             self.stderr.write("** Running in debug mode: only 10 items will be processed **\n")
 
-        if what == 'feed':
+        if what == 'keywords':
             publish_feed(debug=debug)
+        elif what == 'exports':
+            publish_exports_feed(debug=debug)
         elif what == 'all':
             publish_all_items(debug=debug)
             publish_feed(debug=debug)

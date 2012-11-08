@@ -19,7 +19,7 @@ from django.views.generic.list_detail import object_detail
 from django.views.generic.create_update import update_object
 
 from spindle.models import Item, ArchivedItem, Track, TranscriptionTask
-from spindle.readers import feedscraper, vtt, xmp
+from spindle.readers import vtt, xmp
 import spindle.keywords.collocations as collocations
 import spindle.transcribe
 
@@ -35,7 +35,7 @@ def itemlist(request):
     return do_itemlist(request, **params)
 
 def do_itemlist(request, limit=15, offset=0, search=None,
-                sort_by='published', sort_dir=-1, **kwargs):
+                sort_by='published', sort_dir=-1, **ignored):
     offset = int(offset)
     limit = int(limit)
     sort_dir = int(sort_dir)
@@ -50,12 +50,10 @@ def do_itemlist(request, limit=15, offset=0, search=None,
         else:
             return Item.objects.all()
 
-    # Sort
+    # Sort, count and slice
     count = base_query().count()
     query = base_query().order_by(sort_by if (sort_dir > 0) else ("-" + sort_by))
     items = query[offset:offset+limit]
-
-    # Count and slice
 
     # Construct readable descriptions of search and range
     if len(items) < limit:

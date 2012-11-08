@@ -1,3 +1,11 @@
+"""Models for Spindle.
+Item -- a podcast
+Track -- a transcription. Each item has 0 or more tracks.
+Clip -- each track is made up of many clips
+Speaker -- each clip may have a named speaker
+ArchivedItem -- for versioning items (currently broken)"""
+
+
 import os
 import datetime
 import operator
@@ -84,6 +92,9 @@ class Item(models.Model):
                                                editable=False)
     updated_by          = models.ForeignKey(User, null=True, blank=True,
                                             editable=False)
+    # added_to_db = models.DateTimeField('Added to database',
+    #                                    auto_now_add=True,
+    #                                    editable=False)
 
     def __unicode__(self):
         return self.name

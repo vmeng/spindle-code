@@ -9,9 +9,7 @@ from os.path import basename, splitext
 
 # Scrape the OXITEMS RSS-of-RSS feed for audio and video files we
 # should pull in
-def rss_to_records(url):
-    d = feedparser.parse(url)
-
+def rss_to_records(d):
     for entry in d.entries:
         dct = {}
         try:
@@ -86,7 +84,15 @@ def records_to_items(items):
 
 #
 #
+class ScrapedRSS:
+    def __init__(self, url):
+        parsed = feedparser.parse(url)
+        self.count = len(parsed.entries)
+        self.items = _extract(parsed)
+
 def extract(url):
-    for item in records_to_items(rss_to_records(url)):
-        yield item
+    return ScrapedRSS(url)
     
+def _extract(parsed):
+    for item in records_to_items(rss_to_records(parsed)):
+        yield item 
