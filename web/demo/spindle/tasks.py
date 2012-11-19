@@ -1,6 +1,7 @@
 from pprint import pprint, pformat
 
 from django.conf import settings
+from django.core.cache import cache
 
 from celery import task, current_task
 from celery.utils.log import get_task_logger
@@ -9,19 +10,24 @@ import spindle.readers.feedscraper
 import spindle.models
 from spindle.templatetags.spindle_extras import duration as format_duration
 
-from spindle.publish import publish_feed, publish_all_items, publish_exports_feed, update_progress
+from spindle.publish import publish_feed, publish_all_items, publish_exports_feed
 
 logger = get_task_logger(__name__)
+SCRAPE_TASK_ID = 'scrape_task_id'
 
 # Scrape the RSS feed
 @task(name='spindle_scrape', queue='local')
 def scrape():
+    cache.set(SCRAPE_TASK_ID, current_task.request.id, 5 * 60)
+    update_progress(current_task, 0, '')
+
     # Make a hash of all URLs in database
     urlhash = {}
     logger.info("Listing all URLs in database ...")
     for item in spindle.models.Item.objects.all():
         urlhash[item.audio_url] = urlhash[item.video_url] = item
     logger.info(" ... got {} URLs".format(len(urlhash)))
+    update_progress(current_task, .01, '')
 
     # Scrape RSS for items
     try:
@@ -33,6 +39,7 @@ def scrape():
     logger.info(u"Parsing RSS feed at '{}' ...".format(url))
     rss = spindle.readers.feedscraper.extract(url)
     logger.info(u' ... done')
+    update_progress(current_task, .05, '')
 
     def update_kw(item, entry):
         if item.keywords != entry['keywords']:
@@ -47,7 +54,7 @@ def scrape():
 
     num_entries = rss.count
     for index, entry in enumerate(rss.items):
-        update_progress(current_task, float(index) / num_entries, '')
+        update_progress(current_task, .05 + .95 * (float(index) / num_entries), '')
 
         rss_urls = [f for f in ['audio_url', 'video_url'] if f in entry]
         existing_urls = dict((f, entry[f])
@@ -78,6 +85,7 @@ def scrape():
             item.save()
 
     logger.info('added {} new items to database'.format(len(newitems)))
+    cache.delete(SCRAPE_TASK_ID)
     return newitems
 
 @task
@@ -86,3 +94,9 @@ def ping():
     status = 'Executing task id {} on {}'.format(request.id, request.hostname);
     logger.info(status)
     return status
+
+def update_progress(task, progress, message):
+    logger.info(u'%5.1f%% %s', 100 * progress, message)
+    if task and not task.request.called_directly:
+        task.update_state(state='PROGRESS', meta={ 'progress': progress })
+

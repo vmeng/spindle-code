@@ -1,6 +1,5 @@
 from django.conf.urls import patterns, include, url
 from spindle.rest_api import api_urls
-from spindle.publish import ExportedTranscriptsFeed
 import spindle.views
 
 #
@@ -39,17 +38,19 @@ urlpatterns = patterns(
     url(r'^track/(?P<track_id>\d+)/keywords/$',
         'keywords', name='spindle_track_keywords'),
 
+    # Import RSS
+    url(r'^scrape/', 'scrape', name='spindle_scrape'),
+
     # Transcription queue
     url(r'^queue/$', 'queue', name='spindle_queue'),
-
-    # FIXME: should really be an API method
-    url(r'^pull/$', 'scrape', name='spindle_scrape'),
     )
 
 # Partial views for ajax updating
 urlpatterns += patterns(
     'spindle.views',
-    url(r'^a/p/queue$', 'queuepartial')
+    url(r'^a/p/queue$', 'queuepartial'),
+
+    url(r'tasks/(?P<task_id>[^/]+)$', 'task_info')
 )
 
 # Export formats

@@ -17,11 +17,14 @@ from django.core.urlresolvers import reverse, reverse_lazy
 from django.views.generic.edit import UpdateView
 from django.views.generic.list_detail import object_detail
 from django.views.generic.create_update import update_object
+from django.core.cache import cache
 
 from spindle.models import Item, ArchivedItem, Track, TranscriptionTask
 from spindle.readers import vtt, xmp
 import spindle.keywords.collocations as collocations
 import spindle.transcribe
+import spindle.tasks
+from spindle.rest_api import json_login_required
 
 import spindle.transcribe.koemei as koemei
 import spindle.transcribe.sphinx as sphinx
@@ -139,18 +142,46 @@ def new(request):
 
     return render(request, 'spindle/new.html', {
         'form': form,
-        'rss_url': settings.SPINDLE_SCRAPE_RSS_URL
         })
 
-# Scrape RSS for new items
-
-# FIXME: This should run as a task and the page should poll via AJAX
-# instead of blocking like this.
+# Scrape RSS form
 @login_required
 def scrape(request):
-    import spindle.tasks
-    spindle.tasks.scrape()
-    return redirect('spindle_home')
+    task = None
+    task_id = cache.get(spindle.tasks.SCRAPE_TASK_ID)
+    if request.method == 'POST' and not task_id:
+        # FIXME: race condition
+        task = spindle.tasks.scrape.delay()
+        task_id = task.task_id
+    elif task_id:        
+        task = spindle.tasks.scrape.AsyncResult(task_id)
+
+    if not task:
+        progress_bar = False
+        progress = None
+    else:
+        progress_bar = True
+        if task.status == 'PROGRESS':
+            progress = task.result['progress'] * 100
+        elif task.status == 'SUCCESS':
+            progress = 100
+        else:
+            progress = 0
+        
+    return render(request, 'spindle/scrape.html', {
+        'rss_url': settings.SPINDLE_SCRAPE_RSS_URL,
+        'progress_bar': progress_bar,
+        'progress': progress,
+        'task_id': task_id
+        })
+
+@json_login_required
+def task_info(request, task_id):
+    task_class=spindle.tasks.scrape
+    task = task_class.AsyncResult(task_id)
+    return HttpResponse(json.dumps(dict(status=task.status,
+                                        result=task.result)),
+                        content_type='application/json')
 
 
 # File upload form

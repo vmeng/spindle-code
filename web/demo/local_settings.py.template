@@ -47,11 +47,18 @@ SPINDLE_SPHINX_DIRECTORY = ''
 SPINDLE_SPHINX_OUTPUT_DIRECTORY = ''
 
 # A public directory for published captions and transcirpts
-SPINDLE_PUBLIC_DIRECTORY = ''
+SPINDLE_PUBLIC_DIRECTORY = '/Users/jonathan/ox-it/spindle/web/demo/media'
 
-# Filename for the published RSS feed.  The complete RSS URL will be
-# SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME
+# URL for published items
+SPINDLE_PUBLIC_URL = 'http://localhost:8000/media/'
+
+# Filename for the re-published RSS feed based on the scraped feed,
+# and incorporating <category> tags for keywords.  The complete RSS
+# URL will be SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME
 SPINDLE_PUBLISH_RSS_NAME = 'feed.rss'
+
+# Filename for the RSS feed of exported text, html and srt
+SPINDLE_EXPORTS_RSS_FILENAME = 'exports.rss'
 
 # Authentication for Koemei (koemei.com)
 SPINDLE_KOEMEI_USERNAME = ''

@@ -22,14 +22,5 @@
         <input class='btn' type='submit' value='Create item' />
       </form>   
   </div>
-
-  <h2>Get items from RSS</h2>
-  <div class='well'>
-    <p>Click below to search for new items in the RSS feed at <pre>{{ rss_url }}</pre> and add them to the system.</p>    
-    <p>Adding new items may take several seconds.</p>
-    <form method='post' action="{% url spindle.views.scrape %}">
-      {% csrf_token %} 
-      <input class='btn' type='submit' value='Get new items' />
-    </form>
 {% endblock %}
 

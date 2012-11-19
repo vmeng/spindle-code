@@ -144,7 +144,7 @@ def publish_all_items(debug = False):
     total = items.count()
     if debug: items = items[0:10]
     for index, item in enumerate(items):
-        update_progress(float(index) / total, item.name)
+        update_progress(current_task, float(index) / total, item.name)
         publish_item(item)
 
 
@@ -207,10 +207,11 @@ def publish_exports_feed(debug=False):
               'wb') as outfile:
         feed.write(outfile, 'utf-8')
 
-  
+ 
 def update_progress(task, progress, message):
     logger.info(u'%5.1f%% %s', 100 * progress, message)
-    task.update_state(state='PROGRESS', meta={ 'progress': progress })
+    if task and not task.request.called_directly:
+        task.update_state(state='PROGRESS', meta={ 'progress': progress })
   
 
 def item_exports(item):
