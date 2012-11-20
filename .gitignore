@@ -6,4 +6,5 @@
 /web/demo/media/
 /web/demo/apache/django.wsgi
 /web/demo/apache/httpd.conf
-/web/demo/published/
+/web/conf.sh
+/.dir-locals.el
