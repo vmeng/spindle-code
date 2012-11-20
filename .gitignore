@@ -1,2 +1,4 @@
 /web/demo/local_settings.py
 *.pyc
+*~
+web/demo/static
