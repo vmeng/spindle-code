@@ -39,13 +39,13 @@ case "$1" in
 
         echo '* Starting Sphinx celery worker: '
         nohup "$SPINDLE_DIR/manage.py" celery worker \
-            --settings=settings -Q sphinx \
+            --settings=settings --autoreload -Q sphinx \
             --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
         echo $! | tee "$CELERY_PID_FILE"
 
         echo '* Starting Sphinx local worker:'
         nohup "$SPINDLE_DIR/manage.py" celery worker \
-            --settings=settings -Q local \
+            --settings=settings --autoreload -Q local,celery \
             --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
         echo $! | tee -a "$CELERY_PID_FILE"
         ;;

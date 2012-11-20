@@ -1,8 +1,7 @@
-from pprint import pprint
-import json, re
+import json
 import xml.etree.ElementTree as ET
+import logging
 
-from django.template import Context, loader, RequestContext
 from django.utils import timezone
 from django.http import HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -19,6 +18,8 @@ from django.views.generic.list_detail import object_detail
 from django.views.generic.create_update import update_object
 from django.core.cache import cache
 
+import celery.task.base
+
 from spindle.models import Item, ArchivedItem, Track, TranscriptionTask
 from spindle.readers import vtt, xmp
 import spindle.keywords.collocations as collocations
@@ -29,6 +30,7 @@ from spindle.rest_api import json_login_required
 import spindle.transcribe.koemei as koemei
 import spindle.transcribe.sphinx as sphinx
 
+logger = logging.getLogger(__name__)
 
 
 # List items for transcription
@@ -57,7 +59,7 @@ def do_itemlist(request, limit=15, offset=0, search=None,
     count = base_query().count()
     query = base_query().order_by(sort_by if (sort_dir > 0) else ("-" + sort_by))
     items = query[offset:offset+limit]
-
+    
     # Construct readable descriptions of search and range
     if len(items) < limit:
         range_description = "all"
@@ -147,41 +149,56 @@ def new(request):
 # Scrape RSS form
 @login_required
 def scrape(request):
-    task = None
-    task_id = cache.get(spindle.tasks.SCRAPE_TASK_ID)
-    if request.method == 'POST' and not task_id:
-        # FIXME: race condition
-        task = spindle.tasks.scrape.delay()
-        task_id = task.task_id
-    elif task_id:        
-        task = spindle.tasks.scrape.AsyncResult(task_id)
+    task_descriptions = {
+        'scrape': {
+            'cache_id': spindle.tasks.SCRAPE_TASK_ID,
+            'task_class': spindle.tasks.scrape
+        }
+    }
+    task_info = run_tasks(request, task_descriptions)
+    if(request.POST):
+        return redirect(scrape)
 
-    if not task:
-        progress_bar = False
-        progress = None
-    else:
-        progress_bar = True
-        if task.status == 'PROGRESS':
-            progress = task.result['progress'] * 100
-        elif task.status == 'SUCCESS':
-            progress = 100
-        else:
-            progress = 0
-        
-    return render(request, 'spindle/scrape.html', {
+    template_data = {
         'rss_url': settings.SPINDLE_SCRAPE_RSS_URL,
-        'progress_bar': progress_bar,
-        'progress': progress,
-        'task_id': task_id
-        })
+    }
+    template_data.update(task_info)
 
-@json_login_required
-def task_info(request, task_id):
-    task_class=spindle.tasks.scrape
-    task = task_class.AsyncResult(task_id)
-    return HttpResponse(json.dumps(dict(status=task.status,
-                                        result=task.result)),
-                        content_type='application/json')
+    return render(request, 'spindle/scrape.html', template_data)
+
+# Publish things
+@login_required
+def publish(request):
+    # The tasks
+    task_descriptions = {
+        'publish_feed': {
+            'cache_id': spindle.publish.FEED_TASK_ID,
+            'task_class': spindle.publish.publish_feed
+        },
+        'publish_all_items': {
+            'cache_id': spindle.publish.ITEMS_TASK_ID,
+            'task_class': spindle.publish.publish_all_items
+        },
+        'publish_exports_feed': {
+            'cache_id': spindle.publish.EXPORT_FEED_TASK_ID,
+            'task_class': spindle.publish.publish_exports_feed,
+        }
+    }
+
+    task_info = run_tasks(request, task_descriptions)
+    if(request.POST):
+        return redirect(publish)
+
+    template_data = {
+        'rss_url': spindle.publish.RSS_URL,
+        'exports_rss_url': spindle.publish.EXPORTS_RSS_URL
+    }
+    template_data.update(task_info)
+    return render(request, 'spindle/publish.html', template_data)
+
+
+
+
 
 
 # File upload form
@@ -453,3 +470,55 @@ def get_queue():
             req['percent'] = int(res['progress'] * 100)
 
     return sorted(queue, key=sort_key)
+
+
+def run_tasks(request, task_descriptions):
+    """Process requests involving long-running Celery tasks in a generic way."""
+    tasks = task_descriptions.copy()
+
+    # Find any running tasks
+    for key, data in tasks.iteritems():
+        data['task_id'] = cache.get(data['cache_id'])
+        if data['task_id']:
+            data['task'] = data['task_class'].AsyncResult(data['task_id'])
+        else:
+            data['task'] = None
+
+    # Start a new task if requested
+    if request.method == 'POST':
+        for key, data in tasks.iteritems():
+            if key in request.POST and not data['task_id']:
+                # Try to grab the lock first
+                if cache.add(data['cache_id'], True, 5 * 60):
+                    task = data['task'] = data['task_class'].delay()
+                    cache.set(data['cache_id'], task.task_id, 5 * 60)
+                    data['task_id'] = task.task_id
+                else:
+                    logger.info('Task %s already running as %s',
+                                data['task_class'], cache.get(data['cache_id']))
+    
+    # Make progress bars for any running tasks
+    for key, data in tasks.iteritems():
+        task = data['task']
+        if not task:
+            data['progress_bar'] = False
+            data['progress'] = None
+        else:
+            data['progress_bar'] = True
+            if task.status == 'PROGRESS':
+                data['progress'] = task.result['progress'] * 100
+            elif task.status == 'SUCCESS':
+                data['progress'] = 100
+            else:
+                data['progress'] = 0
+                
+    return tasks
+
+
+@json_login_required
+def task_info(request, task_id):
+    task_class = celery.task.base.Task
+    task = task_class.AsyncResult(task_id)
+    return HttpResponse(json.dumps(dict(status=task.status,
+                                        result=task.result)),
+                        content_type='application/json')

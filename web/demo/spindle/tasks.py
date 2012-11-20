@@ -19,15 +19,13 @@ SCRAPE_TASK_ID = 'scrape_task_id'
 @task(name='spindle_scrape', queue='local')
 def scrape():
     cache.set(SCRAPE_TASK_ID, current_task.request.id, 5 * 60)
-    update_progress(current_task, 0, '')
+    update_progress(current_task, .01, 'Listing all URLs in database ...')
 
     # Make a hash of all URLs in database
     urlhash = {}
-    logger.info("Listing all URLs in database ...")
     for item in spindle.models.Item.objects.all():
         urlhash[item.audio_url] = urlhash[item.video_url] = item
-    logger.info(" ... got {} URLs".format(len(urlhash)))
-    update_progress(current_task, .01, '')
+    update_progress(current_task, .02, " ... got {} URLs".format(len(urlhash)))
 
     # Scrape RSS for items
     try:
@@ -36,10 +34,9 @@ def scrape():
     except AttributeError:
         raise Exception("SPINDLE_SCRAPE_RSS_URL is blank or unset in settings.py")
 
-    logger.info(u"Parsing RSS feed at '{}' ...".format(url))
+    update_progress(current_task, .02, u"Parsing RSS feed at '{}' ...".format(url))
     rss = spindle.readers.feedscraper.extract(url)
-    logger.info(u' ... done')
-    update_progress(current_task, .05, '')
+    update_progress(current_task, .05, u"Parsing RSS feed at '{}' ... done".format(url))
 
     def update_kw(item, entry):
         if item.keywords != entry['keywords']:
@@ -54,8 +51,7 @@ def scrape():
 
     num_entries = rss.count
     for index, entry in enumerate(rss.items):
-        update_progress(current_task, .05 + .95 * (float(index) / num_entries), '')
-
+        message = ''
         rss_urls = [f for f in ['audio_url', 'video_url'] if f in entry]
         existing_urls = dict((f, entry[f])
                              for f in rss_urls if entry[f] in urlhash)
@@ -63,7 +59,7 @@ def scrape():
         if len(rss_urls) and not existing_urls:
             # This item doesn't exist at all yet
             item = spindle.models.Item(**entry)
-            logger.info(u"New item: '{}'".format(item.name))
+            message = u"New item: '{}'".format(item.name)
             newitems.append(item)
             item.save()
         elif len(existing_urls) == len(rss_urls):
@@ -75,16 +71,18 @@ def scrape():
             existing_field, existing_url = existing_urls.items()[0]
             item = urlhash[existing_url]
             new_field = 'video_url' if existing_field == 'audio_url' else 'audio_url'
-            logger.info(u'Updating item \'{}\' to include {}=\'{}\''.format(
-                item.name, new_field, entry[new_field]))
+            message = u'Updating item \'{}\' to include {}=\'{}\''.format(
+                item.name, new_field, entry[new_field])
             setattr(item, new_field, entry[new_field])
 
             # Also check for keyword update
             update_kw(item, entry)
 
             item.save()
+        update_progress(current_task, .05 + .94 * (float(index) / num_entries), message)
 
-    logger.info('added {} new items to database'.format(len(newitems)))
+    update_progress(current_task, 1,
+                    'Added {} new items to database'.format(len(newitems)))
     cache.delete(SCRAPE_TASK_ID)
     return newitems
 
@@ -98,5 +96,6 @@ def ping():
 def update_progress(task, progress, message):
     logger.info(u'%5.1f%% %s', 100 * progress, message)
     if task and not task.request.called_directly:
-        task.update_state(state='PROGRESS', meta={ 'progress': progress })
+        task.update_state(state='PROGRESS', meta={ 'progress': progress,
+                                                   'message': message })
 

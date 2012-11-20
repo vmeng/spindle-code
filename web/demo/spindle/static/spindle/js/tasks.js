@@ -13,14 +13,20 @@ SPINDLE.tasks = {
                     var status = json.hasOwnProperty('status') && json.status || '';
                     if(status == 'PROGRESS'
                        && json.hasOwnProperty('result')
-                       && json.result
-                       && json.result.hasOwnProperty('progress')) {
-                        var progress = json.result.progress * 100;
-                        $(that).find('.bar').css('width', progress + '%');
+                       && json.result) {
+                        if(json.result.hasOwnProperty('progress')) {
+                            var progress = json.result.progress * 100;
+                            $(that).find('.bar').css('width', progress + '%');
+                        }
+                        
+                        if(json.result.hasOwnProperty('message') && json.result.message) {
+                            $(that).next('.progress-message').html(json.result.message);
+                        }
                     } else if(status == 'SUCCESS') {
                         $(that).removeClass('progress-striped')
                             .data('task-id', null)
                             .find('.bar').css('width', '100%');
+                        $(that).next('.progress-message').html('Finished.');
                     }
                 });
             }

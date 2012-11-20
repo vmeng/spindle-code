@@ -1,0 +1,86 @@
+{% extends "spindle/index.html" %}
+
+{% block head %}
+  {{ block.super }}
+  <script>
+    (function () {
+    var view = '{% url spindle.views.task_info "dummy" %}';
+    SPINDLE.views = { task: view.replace('dummy', '') };
+    }());
+  </script>
+  <script src="{{ STATIC_URL }}spindle/js/tasks.js"></script>
+{% endblock %}
+
+{% block content %}
+  <form method='post' action="">
+    {% csrf_token %} 
+
+    <h2>Publish RSS feed</h2>
+    <div class='well'>
+      <p>Click below to publish a copy of the imported RSS feed with
+      added tags for extracted keywords at
+        <pre><a href="{{ rss_url }}">{{ rss_url }}</a></pre>
+      </p>
+      {% if not publish_feed.progress_bar %}
+        <p>Publishing the RSS feed may take several minutes.</p>
+        <input class='btn' type='submit' value='Publish RSS' name='publish_feed' />
+      {% else %}
+        <p>Exporting in progress...</p>
+        <div class="progress progress-striped active"
+             style="width: 10em"
+             data-task-id="{{ publish_feed.task_id }}">
+             <div class="bar"
+                  style="width: {{ publish_feed.progress }}%"></div>
+        </div>
+        <div class="progress-message"></div> 
+      {% endif %} 
+    </div>
+
+    <h2>Publish transcripts</h2>
+    <div class='well'>
+      <p>Click below to export all item transcripts marked for publishing.</p> 
+      <p>By default, only plain text files are exported, marked as
+        &quot;unpublished&quot; (invisible) in the RSS feed. To export
+        SRT or HTML files for a particular transcript, go to the
+        &quot;Publishing & Metadata&quot; tab in the transcript
+        editor.</p>
+
+        {% if not publish_all_items.progress_bar %}
+          <input class='btn' type='submit' value='Publish transcripts' name='publish_all_items' />
+        {% else %}
+          <p>Exporting in progress...</p>
+          <div class="progress progress-striped active"
+               style="width: 10em"
+               data-task-id="{{ publish_all_items.task_id }}">
+               <div class="bar"
+                    style="width: {{ publish_all_items.progress }}%"></div>
+          </div>
+          <div class="progress-message"></div> 
+        {% endif %} 
+    </div>
+
+    <h2>Publish RSS of exports</h2>
+    <div class='well'>
+      <p>Click below to export an RSS of all published transcripts at
+        <pre><a href="{{ exports_rss_url }}">{{ exports_rss_url }}</a></pre>
+      </p>
+
+        {% if not publish_exports_feed.progress_bar %}
+          <input class='btn' type='submit' value='Publish transcripts' name='publish_exports_feed' />
+        {% else %}
+          <p>Exporting in progress...</p>
+          <div class="progress progress-striped active"
+               style="width: 10em"
+               data-task-id="{{ publish_exports_feed.task_id }}">
+               <div class="bar"
+                    style="width: {{ publish_exports_feed.progress }}%"></div>
+          </div>
+          <div class="progress-message"></div> 
+        {% endif %} 
+    </div>
+  </form>
+  
+{% endblock %}
+
+
+

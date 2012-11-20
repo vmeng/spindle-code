@@ -1,14 +1,14 @@
 {% extends "spindle/index.html" %}
 
 {% block head %}
-{{ block.super }}
-<script>
-(function () {
-  var view = '{% url spindle.views.task_info "dummy" %}';
-  SPINDLE.views = { task: view.replace('dummy', '') };
-}());
-</script>
-<script src="{{ STATIC_URL }}spindle/js/tasks.js"></script>
+  {{ block.super }}
+  <script>
+    (function () {
+    var view = '{% url spindle.views.task_info "dummy" %}';
+    SPINDLE.views = { task: view.replace('dummy', '') };
+    }());
+  </script>
+  <script src="{{ STATIC_URL }}spindle/js/tasks.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -16,23 +16,23 @@
   <div class='well'>
     <p>Click below to search for new items in the RSS feed at <pre>{{ rss_url }}</pre> and add them to the system.</p>  
 
-    {% if not progress_bar %} 
+    {% if not scrape.progress_bar %}
       <p>Adding new items may take several seconds.</p>
-
       <form method='post' action="">
         {% csrf_token %} 
-        <input class='btn' type='submit' value='Get new items' />
+        <input class='btn' type='submit' name='scrape' value='Get new items' />
       </form>
     {% else %}
-      <p>Scraping in progress...</p>
+      <p>Importing in progress...</p>
       <div class="progress progress-striped active"
            style="width: 10em"
-           data-task-id="{{ task_id }}">
-        <div class="bar"
-             style="width: {{ progress }}%"></div>
+           data-task-id="{{ scrape.task_id }}">
+           <div class="bar"
+                style="width: {{ scrape.progress }}%"></div>
       </div>
+      <div class="progress-message"></div> 
     {% endif %} 
-{% endblock %}
+  {% endblock %}
 
 
 

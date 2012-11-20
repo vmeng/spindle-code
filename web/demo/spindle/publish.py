@@ -5,11 +5,10 @@ import xml.etree.ElementTree as ET
 import requests
 import urlparse
 import logging
-import sys
 
 from django.conf import settings
-from django.db.models import Q
 from celery import task, current_task
+from django.core.cache import cache
 
 from spindle.models import Item, PUBLISH_STATES
 import spindle.keywords.collocations as collocations
@@ -17,6 +16,19 @@ import spindle.utils
 
 # Logging
 logger = logging.getLogger(__name__)
+
+# Cache keys for locking and for storing task IDs
+#
+# The task ID is stored in the cache on making the request (see
+# "publish" in views.py), and deleted on completion of the running
+# task
+#
+# TODO: This is fragile. It would be good to make this pattern into a
+# Task subclass, which would also ensure the lock is released on an
+# error in the task
+FEED_TASK_ID = 'rss_task_id'
+ITEMS_TASK_ID = 'items_task_id'
+EXPORT_FEED_TASK_ID = 'export_feed_task_id'
 
 # RSS namespaces to use
 RSS_NAMESPACES = {
@@ -49,6 +61,16 @@ ATOM_LINK_QNAME = ET.QName(RSS_NAMESPACES['atom'], 'link')
 PUBLIC_URL = settings.SPINDLE_PUBLIC_URL
 if not PUBLIC_URL.endswith('/'): PUBLIC_URL += '/'
 
+# RSS Filenames
+RSS_FILENAME = os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
+                             settings.SPINDLE_PUBLISH_RSS_FILENAME)
+EXPORTS_RSS_FILENAME = os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
+                                     settings.SPINDLE_EXPORTS_RSS_FILENAME)
+
+# RSS URLs
+RSS_URL = urlparse.urljoin(PUBLIC_URL, settings.SPINDLE_PUBLISH_RSS_FILENAME)
+EXPORTS_RSS_URL = urlparse.urljoin(PUBLIC_URL,
+                                   settings.SPINDLE_EXPORTS_RSS_FILENAME)
 
 # Descriptions of things to publish. Each entry is a tuple of the form
 #
@@ -130,11 +152,10 @@ def publish_feed(debug = False):
         ET.register_namespace(prefix, uri)
 
     tree = ET.ElementTree(rss)
-    with open(os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
-                           settings.SPINDLE_PUBLISH_RSS_FILENAME),
-              'wb') as outfile:
+    with open(RSS_FILENAME, 'wb') as outfile:
         tree.write(outfile, encoding='utf-8', xml_declaration=True)
 
+    cache.delete(FEED_TASK_ID)
     logger.info('Done')
 
 @task(name='publish_all_items')
@@ -146,6 +167,7 @@ def publish_all_items(debug = False):
     for index, item in enumerate(items):
         update_progress(current_task, float(index) / total, item.name)
         publish_item(item)
+    cache.delete(ITEMS_TASK_ID)
 
 
 def publish_item(item):
@@ -165,7 +187,6 @@ def publish_item(item):
                     (getattr(track, method))(outfile)
 
 
-from django.contrib.syndication.views import Feed
 from django.utils.feedgenerator import Rss201rev2Feed
 
 class TranscriptFeed(Rss201rev2Feed):
@@ -202,17 +223,18 @@ def publish_exports_feed(debug=False):
                           description=export['description'],
                           model_obj=item)
 
-    with open(os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
-                           settings.SPINDLE_EXPORTS_RSS_FILENAME),
-              'wb') as outfile:
+    with open(EXPORTS_RSS_FILENAME, 'wb') as outfile:
         feed.write(outfile, 'utf-8')
-
+    cache.delete(EXPORT_FEED_TASK_ID)
+    
  
 def update_progress(task, progress, message):
     logger.info(u'%5.1f%% %s', 100 * progress, message)
     if task and not task.request.called_directly:
-        task.update_state(state='PROGRESS', meta={ 'progress': progress })
-  
+        task.update_state(state='PROGRESS', meta={ 'progress': progress,
+                                                   'message': message })
+
+
 
 def item_exports(item):
     """Generator, returning attributes for all the published URLs

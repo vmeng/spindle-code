@@ -38,8 +38,9 @@ urlpatterns = patterns(
     url(r'^track/(?P<track_id>\d+)/keywords/$',
         'keywords', name='spindle_track_keywords'),
 
-    # Import RSS
+    # Tasks: importing, publishing, etc.
     url(r'^scrape/', 'scrape', name='spindle_scrape'),
+    url(r'^publish/', 'publish', name='spindle_publish'),
 
     # Transcription queue
     url(r'^queue/$', 'queue', name='spindle_queue'),
