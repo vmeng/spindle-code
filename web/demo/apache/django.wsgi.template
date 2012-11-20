@@ -1,0 +1,28 @@
+# -*- mode: python -*-
+
+# Add a path here to the site-packages directory in any applicable
+# virtual environment, if necessary
+#
+# E.g. /path/to/virtualenvs/env_name/lib/python2.7/site-packages/
+SITE_PACKAGES=''
+
+import os
+import sys
+import site
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo.settings")
+
+here_dir = os.path.dirname(__file__)
+demo_dir = os.path.dirname(here_dir)
+web_dir = os.path.dirname(demo_dir)
+
+sys.path.append(web_dir)
+sys.path.append(demo_dir)
+if SITE_PACKAGES:
+    site.addsitedir(SITE_PACKAGES)
+
+# This application object is used by any WSGI server configured to use this
+# file. This includes Django's development server, if the WSGI_APPLICATION
+# setting points here.
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()

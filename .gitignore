@@ -1,4 +1,8 @@
 /web/demo/local_settings.py
 *.pyc
 *~
-web/demo/static
+/web/demo/static
+/web/demo/published/
+/web/demo/media/
+/web/demo/apache/django.wsgi
+/web/demo/apache/httpd.conf

@@ -1,0 +1,37 @@
+# Log level
+LogLevel info
+
+# Virtual environment setup
+
+# Path to virtual environment root 
+# Must match mod_wsgi's python version
+WSGIPythonHome /path/to/virtualenv
+
+# Path to virtual environment site packages
+WSGIPythonPath /path/to/virtualenv/lib/python2.7/site-packages/
+
+# Allow writing to 
+WSGIRestrictStdout Off
+
+# Run as daemon process
+WSGIDaemonProcess spindle processes=2 threads=15
+
+# Path to django.wsgi in this directory
+WSGIScriptAlias / /path/to/spindle/web/demo/apache/django.wsgi
+
+# Enable loading the application from this directory
+<Directory /path/to/spindle/web/demo/apache/>
+WSGIProcessGroup spindle
+<Files django.wsgi>
+Order deny,allow
+Allow from all
+</Files>
+</Directory>
+
+# Path to static files directory
+Alias /static/ /Users/jonathan/ox-it/spindle/web/demo/static/
+
+<Directory /Users/jonathan/ox-it/spindle/web/demo/static/>
+Order deny,allow
+Allow from all
+</Directory>
