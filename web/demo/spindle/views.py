@@ -25,6 +25,7 @@ from spindle.readers import vtt, xmp
 import spindle.keywords.collocations as collocations
 import spindle.transcribe
 import spindle.tasks
+import spindle.publish
 from spindle.rest_api import json_login_required
 
 import spindle.transcribe.koemei as koemei
@@ -346,6 +347,7 @@ def edit_track(request, track_id):
             'item': item,
             'track': track,
             })
+
 # Track metadata
 class TrackMetadataForm(ModelForm):
     class Meta:
@@ -370,7 +372,19 @@ class TrackMetaView(UpdateView):
 
     @method_decorator(login_required)
     def dispatch(self, *args, **kwargs):
+        # logger.info("args=%s, kwargs=%s", args, kwargs)
         return super(TrackMetaView, self).dispatch(*args, **kwargs)
+
+    def post(self, request, track_id, *args, **kwargs):
+        response = super(TrackMetaView, self).post(request, *args,
+                                                   track_id=track_id, **kwargs)
+        if request.POST['publish']:
+            item = Track.objects.get(pk=track_id).item
+            logger.info("Publishing item %s", item)
+            spindle.publish.publish_item(item)
+        return response
+            
+
 
 # Display keywords
 @login_required

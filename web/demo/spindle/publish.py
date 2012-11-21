@@ -49,6 +49,7 @@ RSS_SCHEME_ROOT = 'http://rss.oucs.ox.ac.uk/spindle/'
 # 'scheme' attributes for RSS <category> tags
 RSS_KEYWORDS_SCHEME = RSS_SCHEME_ROOT + 'auto-keywords/'
 RSS_NGRAMS_SCHEME = RSS_SCHEME_ROOT + 'auto-ngrams/'
+RSS_VISIBILITY_SCHEME = 'http://rss.oucs.ox.ac.uk/itunesu_support'
 
 # 'rel' attributes for <atom:link> tags
 RSS_TRANSCRIPT_REL = RSS_SCHEME_ROOT + 'transcript/'
@@ -199,6 +200,14 @@ class TranscriptFeed(Rss201rev2Feed):
     def add_item_elements(self, handler, item):
         super(TranscriptFeed, self).add_item_elements(handler, item)
         
+        # Add visibility tag. Using OUCS's custom iTunesU categories
+        # for now unless/until we come up with something more specific
+        visibility = '0' if item['visibility'] == 'hidden' else '1'
+        handler.addQuickElement('category',
+                                attrs=dict(scheme=RSS_VISIBILITY_SCHEME,
+                                           term=visibility))
+
+        # Add links to original audio and video
         for url in (item['model_obj'].audio_url,
                     item['model_obj'].video_url): 
             if url:
@@ -221,6 +230,7 @@ def publish_exports_feed(debug=False):
             feed.add_item(title=item.name,
                           link=export['href'],
                           description=export['description'],
+                          visibility=export['visibility'],
                           model_obj=item)
 
     with open(EXPORTS_RSS_FILENAME, 'wb') as outfile:
@@ -252,13 +262,12 @@ def item_exports(item):
         for field, extension, description, mime_type, rel, method in PUBLISH_TYPES:
             visibility = getattr(track, field)
             if visibility in PUBLISH_STATES:
-                # if visibility == 'hidden':
-                #     rel += 'hidden/'
                 yield dict(href = base_url + extension,
                            hreflang = track.lang,
                            rel = rel,
                            mime_type = mime_type,
-                           description = description)
+                           description = description,
+                           visibility = visibility)
 
 
 def item_keywords(item):
