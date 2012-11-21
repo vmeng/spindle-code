@@ -1,3 +1,4 @@
+import os
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
@@ -55,7 +56,7 @@ SPINDLE_PUBLIC_URL = 'http://localhost:8000/media/'
 # Filename for the re-published RSS feed based on the scraped feed,
 # and incorporating <category> tags for keywords.  The complete RSS
 # URL will be SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME
-SPINDLE_PUBLISH_RSS_NAME = 'feed.rss'
+SPINDLE_PUBLISH_RSS_FILENAME = 'feed.rss'
 
 # Filename for the RSS feed of exported text, html and srt
 SPINDLE_EXPORTS_RSS_FILENAME = 'exports.rss'
@@ -80,3 +81,15 @@ BROKER_URL = 'django://'
 
 # BROKER_URL = 'amqp://user:password@localhost/spindle'
 # CELERY_RESULT_BACKEND = 'amqp'
+
+
+#------------------------------
+# Cache
+#------------------------------
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache_table',
+    }
+}

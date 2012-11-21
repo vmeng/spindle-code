@@ -10,7 +10,7 @@ WSGIPythonHome /path/to/virtualenv
 # Path to virtual environment site packages
 WSGIPythonPath /path/to/virtualenv/lib/python2.7/site-packages/
 
-# Allow writing to 
+# Allow writing to stdout by default
 WSGIRestrictStdout Off
 
 # Run as daemon process
@@ -29,9 +29,9 @@ Allow from all
 </Directory>
 
 # Path to static files directory
-Alias /static/ /Users/jonathan/ox-it/spindle/web/demo/static/
+Alias /static/ /path/to/spindle/web/demo/static/
 
-<Directory /Users/jonathan/ox-it/spindle/web/demo/static/>
+<Directory /path/to/spindle/web/demo/static/>
 Order deny,allow
 Allow from all
 </Directory>
