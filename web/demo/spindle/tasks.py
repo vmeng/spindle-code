@@ -9,23 +9,23 @@ from celery.utils.log import get_task_logger
 import spindle.readers.feedscraper
 import spindle.models
 from spindle.templatetags.spindle_extras import duration as format_duration
-
+from spindle.single_instance_task import single_instance_task
 from spindle.publish import publish_feed, publish_all_items, publish_exports_feed
 
 logger = get_task_logger(__name__)
 SCRAPE_TASK_ID = 'scrape_task_id'
 
+
 # Scrape the RSS feed
-@task(name='spindle_scrape', queue='local')
+@single_instance_task(cache_id=SCRAPE_TASK_ID, name='spindle_scrape', queue='local')
 def scrape():
-    cache.set(SCRAPE_TASK_ID, current_task.request.id, 5 * 60)
-    update_progress(current_task, .01, 'Listing all URLs in database ...')
+    current_task.update_progress(.01, 'Listing all URLs in database ...')
 
     # Make a hash of all URLs in database
     urlhash = {}
     for item in spindle.models.Item.objects.all():
         urlhash[item.audio_url] = urlhash[item.video_url] = item
-    update_progress(current_task, .02, " ... got {} URLs".format(len(urlhash)))
+    current_task.update_progress(.02, " ... got {} URLs".format(len(urlhash)))
 
     # Scrape RSS for items
     try:
@@ -34,9 +34,9 @@ def scrape():
     except AttributeError:
         raise Exception("SPINDLE_SCRAPE_RSS_URL is blank or unset in settings.py")
 
-    update_progress(current_task, .02, u"Parsing RSS feed at '{}' ...".format(url))
+    current_task.update_progress(.02, u"Parsing RSS feed at '{}' ...".format(url))
     rss = spindle.readers.feedscraper.extract(url)
-    update_progress(current_task, .05, u"Parsing RSS feed at '{}' ... done".format(url))
+    current_task.update_progress(.05, u"Parsing RSS feed at '{}' ... done".format(url))
 
     def update_kw(item, entry):
         if item.keywords != entry['keywords']:
@@ -79,11 +79,9 @@ def scrape():
             update_kw(item, entry)
 
             item.save()
-        update_progress(current_task, .05 + .94 * (float(index) / num_entries), message)
+        current_task.update_progress(.05 + .94 * (float(index) / num_entries), message)
 
-    update_progress(current_task, 1,
-                    'Added {} new items to database'.format(len(newitems)))
-    cache.delete(SCRAPE_TASK_ID)
+    current_task.update_progress(1, 'Added {} new items to database'.format(len(newitems)))
     return newitems
 
 @task
@@ -92,10 +90,3 @@ def ping():
     status = 'Executing task id {} on {}'.format(request.id, request.hostname);
     logger.info(status)
     return status
-
-def update_progress(task, progress, message):
-    logger.info(u'%5.1f%% %s', 100 * progress, message)
-    if task and not task.request.called_directly:
-        task.update_state(state='PROGRESS', meta={ 'progress': progress,
-                                                   'message': message })
-

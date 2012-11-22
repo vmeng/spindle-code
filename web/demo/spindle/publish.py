@@ -7,12 +7,12 @@ import urlparse
 import logging
 
 from django.conf import settings
-from celery import task, current_task
-from django.core.cache import cache
+from celery import current_task
 
 from spindle.models import Item, PUBLISH_STATES
 import spindle.keywords.collocations as collocations
 import spindle.utils
+from spindle.single_instance_task import single_instance_task
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -22,10 +22,6 @@ logger = logging.getLogger(__name__)
 # The task ID is stored in the cache on making the request (see
 # "publish" in views.py), and deleted on completion of the running
 # task
-#
-# TODO: This is fragile. It would be good to make this pattern into a
-# Task subclass, which would also ensure the lock is released on an
-# error in the task
 FEED_TASK_ID = 'rss_task_id'
 ITEMS_TASK_ID = 'items_task_id'
 EXPORT_FEED_TASK_ID = 'export_feed_task_id'
@@ -93,7 +89,7 @@ PUBLISH_TYPES = (('publish_text', '.txt', 'Plain text transcript',
                  ('publish_transcript', '.html', 'HTML transcript',
                   'text/html', RSS_TRANSCRIPT_REL, 'write_html'))
 
-@task(name='publish_feed')
+@single_instance_task(name='publish_feed', cache_id=FEED_TASK_ID)
 def publish_feed(debug = False):
     """Republish the incoming RSS feed, adding <category> tags for
     generated keywords and <link> tags to published transcripts."""
@@ -118,7 +114,7 @@ def publish_feed(debug = False):
     for index, entry in enumerate(entries):
         href = entry.find('link').attrib['href']
         title = entry.find('title').text
-        update_progress(current_task, float(index) / total, title)
+        current_task.update_progress(float(index) / total, title)
 
         if href in items.audio:
             item = items.audio[href]
@@ -156,19 +152,17 @@ def publish_feed(debug = False):
     with open(RSS_FILENAME, 'wb') as outfile:
         tree.write(outfile, encoding='utf-8', xml_declaration=True)
 
-    cache.delete(FEED_TASK_ID)
     logger.info('Done')
 
-@task(name='publish_all_items')
+@single_instance_task(name='publish_all_items', cache_id=ITEMS_TASK_ID)
 def publish_all_items(debug = False):
     """Write out published contents for all items, as static files."""
     items = Item.objects.filter(track_count__gt=0).select_related()
     total = items.count()
     if debug: items = items[0:10]
     for index, item in enumerate(items):
-        update_progress(current_task, float(index) / total, item.name)
+        current_task.update_progress(float(index) / total, item.name)
         publish_item(item)
-    cache.delete(ITEMS_TASK_ID)
 
 
 def publish_item(item):
@@ -215,7 +209,7 @@ class TranscriptFeed(Rss201rev2Feed):
                                         attrs=dict(rel='alternate',
                                                    href=url))
 
-@task(name='publish_exports_feed')
+@single_instance_task(name='publish_exports_feed', cache_id=EXPORT_FEED_TASK_ID)
 def publish_exports_feed(debug=False):
     feed = TranscriptFeed(title = "Spindle transcripts",
                           link = "/",
@@ -225,7 +219,7 @@ def publish_exports_feed(debug=False):
 
     total = len(items)
     for index, item in enumerate(items):
-        update_progress(current_task, float(index) / total, item.name)
+        current_task.update_progress(float(index) / total, item.name)
         for export in item_exports(item):
             feed.add_item(title=item.name,
                           link=export['href'],
@@ -235,15 +229,6 @@ def publish_exports_feed(debug=False):
 
     with open(EXPORTS_RSS_FILENAME, 'wb') as outfile:
         feed.write(outfile, 'utf-8')
-    cache.delete(EXPORT_FEED_TASK_ID)
-    
- 
-def update_progress(task, progress, message):
-    logger.info(u'%5.1f%% %s', 100 * progress, message)
-    if task and not task.request.called_directly:
-        task.update_state(state='PROGRESS', meta={ 'progress': progress,
-                                                   'message': message })
-
 
 
 def item_exports(item):

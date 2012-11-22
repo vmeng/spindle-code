@@ -16,7 +16,6 @@ from django.core.urlresolvers import reverse, reverse_lazy
 from django.views.generic.edit import UpdateView
 from django.views.generic.list_detail import object_detail
 from django.views.generic.create_update import update_object
-from django.core.cache import cache
 
 import celery.task.base
 
@@ -150,13 +149,10 @@ def new(request):
 # Scrape RSS form
 @login_required
 def scrape(request):
-    task_descriptions = {
-        'scrape': {
-            'cache_id': spindle.tasks.SCRAPE_TASK_ID,
-            'task_class': spindle.tasks.scrape
-        }
+    tasks = {
+        'scrape': spindle.tasks.scrape
     }
-    task_info = run_tasks(request, task_descriptions)
+    task_info = run_tasks(request, tasks)
     if(request.POST):
         return redirect(scrape)
 
@@ -171,22 +167,13 @@ def scrape(request):
 @login_required
 def publish(request):
     # The tasks
-    task_descriptions = {
-        'publish_feed': {
-            'cache_id': spindle.publish.FEED_TASK_ID,
-            'task_class': spindle.publish.publish_feed
-        },
-        'publish_all_items': {
-            'cache_id': spindle.publish.ITEMS_TASK_ID,
-            'task_class': spindle.publish.publish_all_items
-        },
-        'publish_exports_feed': {
-            'cache_id': spindle.publish.EXPORT_FEED_TASK_ID,
-            'task_class': spindle.publish.publish_exports_feed,
-        }
+    tasks = {
+        'publish_feed': spindle.publish.publish_feed,
+        'publish_all_items': spindle.publish.publish_all_items,
+        'publish_exports_feed': spindle.publish.publish_exports_feed,
     }
 
-    task_info = run_tasks(request, task_descriptions)
+    task_info = run_tasks(request, tasks)
     if(request.POST):
         return redirect(publish)
 
@@ -486,30 +473,17 @@ def get_queue():
     return sorted(queue, key=sort_key)
 
 
-def run_tasks(request, task_descriptions):
+def run_tasks(request, task_classes):
     """Process requests involving long-running Celery tasks in a generic way."""
-    tasks = task_descriptions.copy()
+    tasks = dict((key, {}) for key in task_classes)
 
     # Find any running tasks
     for key, data in tasks.iteritems():
-        data['task_id'] = cache.get(data['cache_id'])
-        if data['task_id']:
-            data['task'] = data['task_class'].AsyncResult(data['task_id'])
-        else:
-            data['task'] = None
-
-    # Start a new task if requested
-    if request.method == 'POST':
-        for key, data in tasks.iteritems():
-            if key in request.POST and not data['task_id']:
-                # Try to grab the lock first
-                if cache.add(data['cache_id'], True, 5 * 60):
-                    task = data['task'] = data['task_class'].delay()
-                    cache.set(data['cache_id'], task.task_id, 5 * 60)
-                    data['task_id'] = task.task_id
-                else:
-                    logger.info('Task %s already running as %s',
-                                data['task_class'], cache.get(data['cache_id']))
+        task_class = task_classes[key]
+        data['task_id'], data['task'] = task_class.get_running_id_and_instance()
+        # Start a new task if requested
+        if key in request.POST and not data['task_id']:
+            data['task'] = task_class.delay()
     
     # Make progress bars for any running tasks
     for key, data in tasks.iteritems():
@@ -533,6 +507,9 @@ def run_tasks(request, task_descriptions):
 def task_info(request, task_id):
     task_class = celery.task.base.Task
     task = task_class.AsyncResult(task_id)
-    return HttpResponse(json.dumps(dict(status=task.status,
-                                        result=task.result)),
-                        content_type='application/json')
+    if task.status == 'PROGRESS':
+        response = json.dumps(dict(status=task.status,
+                                   result=task.result))
+    else:
+        response = json.dumps(dict(status=task.status))
+    return HttpResponse(response, content_type='application/json')
