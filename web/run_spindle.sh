@@ -1,6 +1,17 @@
 #!/bin/sh
 
-source ./conf.sh || exit 1
+# Find path to this script
+if [[ $0 == /* ]] ; then
+    DIR=$(dirname "$0")
+else
+    DIR=$(dirname "${PWD}/${0#./}")
+fi
+source "$DIR/conf.sh" || exit 1
+
+# Define default SPINDLE_DIR
+if [[ -z "$SPINDLE_DIR" ]] ; then
+    SPINDLE_DIR="$DIR/demo"
+fi
 
 # Run as "run_spindle.sh conf" to print out configuration
 if [[ "$1" == conf ]] ; then
