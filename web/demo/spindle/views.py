@@ -214,7 +214,7 @@ class UploadTrackForm(forms.Form):
 # Request transcription form
 TRANSCRIPTION_ENGINES = [(key, engine['name'])
                          for key, engine
-                         in spindle.transcribe.engine_map.iteritems()]
+                         in spindle.transcribe.engine_map().iteritems()]
 class RequestTranscriptForm(forms.Form):
     engine = forms.ChoiceField(choices=TRANSCRIPTION_ENGINES)
 
@@ -299,7 +299,7 @@ def item_add_track(request, item_id):
         request_transcript_form = RequestTranscriptForm(request.POST)
         if request_transcript_form.is_valid():
             engine = request_transcript_form.cleaned_data['engine']
-            if engine not in spindle.transcribe.engine_map:
+            if engine not in spindle.transcribe.engine_map():
                 raise Exception(u"Bad value for engine: {}".format(engine))
 
             item.request_transcription(engine)
@@ -473,7 +473,7 @@ def get_queue():
         req['raw_status'] = task.status()
         req['status'] = format_status(task)
         try:
-            req['engine'] = spindle.transcribe.engine_map[task.engine]['name']
+            req['engine'] = spindle.transcribe.engine_map()[task.engine]['name']
         except:
             req['engine'] = ''
 

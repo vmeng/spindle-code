@@ -111,7 +111,7 @@ class Item(models.Model):
 
     # Push this item onto the transcription queue
     def request_transcription(self, engine_name='spindle.transcribe.sphinx'):
-        transcribe = spindle.transcribe.engine_map[engine_name]['task']
+        transcribe = spindle.transcribe.engine_map()[engine_name]['task']
 
         task = transcribe.delay(self)
         task_record = TranscriptionTask(item = self, task_id = task.id,
