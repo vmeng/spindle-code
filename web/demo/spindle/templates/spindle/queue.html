@@ -1,16 +1,38 @@
 {% extends "spindle/index.html" %}
 
 {% block head %}
-{{ block.super }}
-<script>
-  SPINDLE.views = { queuepartial: '{% url spindle.views.queuepartial %}' };
-</script>
-<script src="{{ STATIC_URL }}spindle/js/queue.js"></script>
+  {{ block.super }}
+  <script>
+    SPINDLE.views = { queuepartial: '{% url spindle.views.queuepartial %}' };
+  </script>
+  <script src="{{ STATIC_URL }}spindle/js/queue.js"></script>
 
 {% endblock %}
 
 {% block content %}
   <h2>Transcription queue</h2>
-  {% include "spindle/queuepartial.html" %}
-{% endblock %}  
+  <form method='post'>
+    {% csrf_token %} 
+    <input class="btn" type="submit" name="delete_finished" value="Delete all completed jobs" />
+    {% include "spindle/queuepartial.html" %}
 
+    <div class="modal hide" id="confirm-delete-modal">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">×</button>
+        <h3>Remove item from queue</h3>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to remove this item from the transcription queue?</p>  
+        <hr/>
+        <input type="hidden" name="delete_task_id" value="" /> 
+      </div>
+      <div class="modal-footer">
+        <input type="submit" class="btn btn-danger" name="delete_task"
+               value="Delete" />
+        <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+      </div>
+    </div>
+
+</form>    
+
+{% endblock %}  

@@ -365,7 +365,7 @@ class TrackMetaView(UpdateView):
     def post(self, request, track_id, *args, **kwargs):
         response = super(TrackMetaView, self).post(request, *args,
                                                    track_id=track_id, **kwargs)
-        if request.POST['publish']:
+        if 'publish' in request.POST:
             item = Track.objects.get(pk=track_id).item
             logger.info("Publishing item %s", item)
             spindle.publish.publish_item(item)
@@ -416,6 +416,18 @@ def keywords(request, track_id):
 # Transcription queue
 @login_required
 def queue(request):
+    if request.POST:
+        if 'delete_finished' in request.POST:
+            for task in TranscriptionTask.queue.all():
+                if task.status() in ('SUCCESS', 'FAILURE'):
+                    task.delete()
+                   
+        if 'delete_task' in request.POST:
+            task_id = request.POST['delete_task_id']
+            TranscriptionTask.queue.filter(task_id=task_id).delete()
+
+        return redirect(queue)
+
     return render(request, 'spindle/queue.html', {
             'title': "Transcription queue",
             'queue': get_queue()
@@ -463,6 +475,10 @@ def get_queue():
             req['engine'] = spindle.transcribe.engine_map()[task.engine]['name']
         except:
             req['engine'] = ''
+        req['is_running'] = req['raw_status'] in ('DOWNLOADING, TRANSCODING',
+                                                  'PROGRESS')
+        req['is_pending'] = req['raw_status'] in ('PENDING')
+        req['is_finished'] = req['raw_status'] in ('SUCCESS', 'FAILURE')
 
         if task.status() == 'PROGRESS' or task.status() == 'RUNNING': # FIXME
             res = task.result()

@@ -12,32 +12,44 @@
   
   <tbody>
     {% for req in queue %}
-      <tr>
-        <td>
-          <p><a href="{% url spindle_item_tracks req.item.id %}">{{ req.item.name }}</a></p>
-          <small>{{ req.item.audio_url }}</small>
-        </td>
+    <tr>
+      <td>
+        <p><a href="{% url spindle_item_tracks req.item.id %}">{{ req.item.name }}</a></p>
+        <small>{{ req.item.audio_url }}</small>
+      </td>
 
-        <td>{{ req.engine }}</td>        
+      <td>{{ req.engine }}</td>        
 
-        <td>{{ req.status }}
-          {% if req.eta %}
-            <p>Time remaining: {{ req.eta|duration }}</p>
-          {% endif %} 
-</td>
+      <td>{{ req.status }}
+        {% if req.eta %}
+        <p>Time remaining: {{ req.eta|duration }}</p>
+        {% endif %} 
+      </td>
 
-        <td>
-          {% if req.progress_bar %}
-            <div class="progress progress-striped active" style="width: 10em">
-              <div class="bar"
-                   style="width: {{ req.percent }}%"
-                   data-item-id="{{ req.item.id }}"></div>
-            </div>
-          {% else %}
-            <span></span>            
-          {% endif %}      
-        </td>          
-      </tr>
+      <td>
+        {% if req.progress_bar %}
+        <div class="progress progress-striped active" style="width: 10em">
+          <div class="bar"
+               style="width: {{ req.percent }}%"
+               data-item-id="{{ req.item.id }}"></div>
+        </div>
+        {% else %}
+        <span></span>            
+        {% endif %}      
+      </td>
+
+      <td>
+        {% if req.is_running %}
+        <button class="btn btn-danger confirmed-delete-button"
+                data-task-id="{{ req.task.task_id }}">Cancel</button>
+        {% elif req.is_pending %}
+        <button class="btn btn-warning confirmed-delete-button"
+                data-task-id="{{ req.task.task_id }}">Cancel</button>  
+        {% else %}
+        <button class="btn immediate-delete-button"
+                data-task-id="{{ req.task.task_id }}">Remove</button>
+        {% endif %}          
+    </tr>
     {% endfor %}
   </tbody>
 </table>

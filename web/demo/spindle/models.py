@@ -274,8 +274,14 @@ class TranscriptionTask(models.Model):
             self.engine,
             self.task_id)
 
-    # Return the Celery task object, if any
+    def delete(self, *args, **kwargs):
+        celery_app = celery.Celery()
+        if self.task_id:
+            celery_app.control.revoke(self.task_id, terminate=True)
+        return super(TranscriptionTask, self).delete(*args, **kwargs)
+
     def async_result(self):
+        """Return the Celery AsyncResult task object for this task, if any"""
         if self.task_id:
             return BaseAsyncResult(self.task_id)
         else:
