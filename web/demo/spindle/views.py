@@ -153,9 +153,6 @@ def scrape(request):
         'scrape': spindle.tasks.scrape
     }
     task_info = run_tasks(request, tasks)
-    if(request.POST):
-        return redirect(scrape)
-
     template_data = {
         'rss_url': settings.SPINDLE_SCRAPE_RSS_URL,
     }
@@ -174,9 +171,6 @@ def publish(request):
     }
 
     task_info = run_tasks(request, tasks)
-    if(request.POST):
-        return redirect(publish)
-
     template_data = {
         'rss_url': spindle.publish.RSS_URL,
         'exports_rss_url': spindle.publish.EXPORTS_RSS_URL
