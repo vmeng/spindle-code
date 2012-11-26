@@ -35,6 +35,7 @@ fi
 # Find celery logfiles and PID file
 CELERY_SPHINX_LOG="$LOG_DIR/celery.sphinx.log"
 CELERY_LOCAL_LOG="$LOG_DIR/celery.local.log"
+CELERYCAM_LOG="$LOG_DIR/celerycam.log"
 CELERY_PID_FILE="$LOG_DIR/celery.pid"
 
 # Run in the right virtual environment
@@ -50,15 +51,21 @@ case "$1" in
 
         echo '* Starting Sphinx celery worker: '
         nohup "$SPINDLE_DIR/manage.py" celery worker \
-            --settings=settings --autoreload -Q sphinx \
+            --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
             --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
         echo $! | tee "$CELERY_PID_FILE"
 
         echo '* Starting Sphinx local worker:'
         nohup "$SPINDLE_DIR/manage.py" celery worker \
-            --settings=settings --autoreload -Q local,celery \
+            --settings=celery_local_settings --autoreload -Q local,celery -E \
             --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
         echo $! | tee -a "$CELERY_PID_FILE"
+
+        echo '* Starting celerycam monitor:'
+        nohup "$SPINDLE_DIR/manage.py" celerycam \
+            </dev/null >"$CELERYCAM_LOG" 2>&1 &
+        echo $! | tee -a "$CELERY_PID_FILE"
+
         ;;
 
     stop)
@@ -66,7 +73,7 @@ case "$1" in
         sudo "$APACHECTL" stop
 
         if [ -f "$CELERY_PID_FILE" ] ; then
-            echo '* Stopping celery workers:  '
+            echo '* Stopping celery workers and celerycam:  '
 
             for pid in $(cat "$CELERY_PID_FILE") ; do
                 echo $pid
