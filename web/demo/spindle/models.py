@@ -275,6 +275,7 @@ class TranscriptionTask(models.Model):
             self.task_id)
 
     def delete(self, *args, **kwargs):
+        import celery
         celery_app = celery.Celery()
         if self.task_id:
             celery_app.control.revoke(self.task_id, terminate=True)
