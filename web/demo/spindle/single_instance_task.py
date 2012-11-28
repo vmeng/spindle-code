@@ -12,24 +12,33 @@ class SingleInstanceTask(Task):
 
     def apply_async(self, *args, **kwargs):
         logger.info("** apply_async called args=%s, kwargs=%s **", args, kwargs)
-        # Try to grab the lock first
-        if cache.add(self.django_cache_id, True, 10 * 60):
+        def make_new_instance():
             task_instance = super(SingleInstanceTask, self).apply_async(*args, **kwargs)
             cache.set(self.django_cache_id, task_instance.task_id, 10 * 60)
             return task_instance
+
+        # Try to grab the lock first
+        if cache.add(self.django_cache_id, True, 10 * 60):
+            return make_new_instance()
         else:
             task_id = cache.get(self.django_cache_id)
-            task_instance = self.AsyncResult(task_id)
-            logger.info('Task %s already running as %s', self.name, task_id)
-            return task_instance
+            # It's rare, but possible, for a previous invocation to
+            # die after setting the cache lock to True but before
+            # registering its task ID. In this case it's fine to start
+            # a new task.
+            if task_id is True:
+                return make_new_instance()
+            else:
+                task_instance = self.AsyncResult(task_id)
+                logger.info('Task %s already running as %s', self.name, task_id)
+                return task_instance
         
-    def get_running_id_and_instance(self):
+    def get_running_instance(self):
         task_id = cache.get(self.django_cache_id)
-        if task_id:
-            task_instance = self.AsyncResult(task_id)
+        if task_id and task_id != True:
+            return self.AsyncResult(task_id)
         else:
-            task_instance = None
-        return (task_id, task_instance)
+            return None
 
     def after_return(self, *args, **kwargs):
         cache.delete(self.django_cache_id)

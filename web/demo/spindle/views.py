@@ -490,10 +490,12 @@ def run_tasks(request, task_classes):
     # Find any running tasks
     for key, data in tasks.iteritems():
         task_class = task_classes[key]
-        data['task_id'], data['task'] = task_class.get_running_id_and_instance()
+        data['task'] = task_class.get_running_instance()
         # Start a new task if requested
-        if key in request.POST and not data['task_id']:
+        if key in request.POST and \
+           (not data['task'] or data['task'].status == 'SUCCESS'):
             data['task'] = task_class.delay()
+        
     
     # Make progress bars for any running tasks
     for key, data in tasks.iteritems():

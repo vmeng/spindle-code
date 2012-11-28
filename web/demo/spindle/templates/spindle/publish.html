@@ -28,7 +28,7 @@
         <p>Exporting in progress...</p>
         <div class="progress progress-striped active"
              style="width: 10em"
-             data-task-id="{{ publish_feed.task_id }}">
+             data-task-id="{{ publish_feed.task.id }}">
              <div class="bar"
                   style="width: {{ publish_feed.progress }}%"></div>
         </div>
@@ -51,7 +51,7 @@
           <p>Exporting in progress...</p>
           <div class="progress progress-striped active"
                style="width: 10em"
-               data-task-id="{{ publish_all_items.task_id }}">
+               data-task-id="{{ publish_all_items.task.id }}">
                <div class="bar"
                     style="width: {{ publish_all_items.progress }}%"></div>
           </div>
@@ -71,7 +71,7 @@
           <p>Exporting in progress...</p>
           <div class="progress progress-striped active"
                style="width: 10em"
-               data-task-id="{{ publish_exports_feed.task_id }}">
+               data-task-id="{{ publish_exports_feed.task.id }}">
                <div class="bar"
                     style="width: {{ publish_exports_feed.progress }}%"></div>
           </div>
