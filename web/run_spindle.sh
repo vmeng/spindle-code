@@ -41,69 +41,135 @@ CELERY_PID_FILE="$LOG_DIR/celery.pid"
 # Run in the right virtual environment
 source "$VIRTUALENV/bin/activate" || exit 1
 
-case "$1" in
-    start)
-        echo '* Starting postgres:'
-        sudo su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA start"
+postgres() {
+    case "$1" in
+        start)
+            echo '* Starting postgres:'
+            su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA start"
+            ;;
 
-        echo '* Starting apache:'
-        sudo "$APACHECTL" restart
+        stop)
+            echo '* Stopping postgres:'
+            su "$PGUSER" -c "pg_ctl -D $PGDATA stop"
+            ;;
 
-        echo '* Starting Sphinx celery worker: '
-        nohup "$SPINDLE_DIR/manage.py" celery worker \
-            --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
-            --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
-        echo $! | tee "$CELERY_PID_FILE"
+        stopfast)
+            echo '* Stopping postgres fast:'
+            su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA -m fast stop"
+            ;;
 
-        echo '* Starting Sphinx local worker:'
-        nohup "$SPINDLE_DIR/manage.py" celery worker \
-            --settings=celery_local_settings --autoreload -Q local,celery -E \
-            --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
-        echo $! | tee -a "$CELERY_PID_FILE"
+        *)
+            echo '* Bad command "'$1'". Specify one of "start", "stop", "stopfast"'
+            ;;
+    esac
+}
 
-        echo '* Starting celerycam monitor:'
-        nohup "$SPINDLE_DIR/manage.py" celerycam \
-            </dev/null >"$CELERYCAM_LOG" 2>&1 &
-        echo $! | tee -a "$CELERY_PID_FILE"
+apache() {
+    case "$1" in 
+        start)
+            echo '* Starting apache:'
+            "$APACHECTL" restart
+            ;;
 
-        ;;
+        stop)
+            echo '* Stopping apache:'
+            "$APACHECTL" stop
+            ;;
 
-    stop)
-        echo '* Stopping apache:'
-        sudo "$APACHECTL" stop
+        *) echo '* Bad command "'$1'". Specify one of "start", "stop".'
+            ;;
+    esac
+}
 
-        if [ -f "$CELERY_PID_FILE" ] ; then
-            echo '* Stopping celery workers and celerycam:  '
 
-            for pid in $(cat "$CELERY_PID_FILE") ; do
-                echo $pid
-                kill -15 $pid
-                while kill -0 $pid ; do sleep 1 ; done
-            done
-        fi
-        ps ax | grep celery
+celery() {
+    case "$1" in
+        start)            
+            echo '* Starting Sphinx celery worker: '
+            nohup "$SPINDLE_DIR/manage.py" celery worker \
+                --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
+                --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
+            echo $! | tee "$CELERY_PID_FILE"
 
-        echo '* Stopping postgres:'
-        sudo su "$PGUSER" -c "pg_ctl -D $PGDATA stop"
-        ;;
+            echo '* Starting local celery worker:'
+            nohup "$SPINDLE_DIR/manage.py" celery worker \
+                --settings=celery_local_settings --autoreload -Q local,celery -E \
+                --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
+            echo $! | tee -a "$CELERY_PID_FILE"
 
-    apacherestart)
-        echo '* Restarting apache:'
-        sudo "$APACHECTL" restart
-        ;;
-    
-    pgstart)
-        echo '* Starting postgres:'
-        sudo su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA start"
-        ;;
+            echo '* Starting celerycam monitor:'
+            nohup "$SPINDLE_DIR/manage.py" celerycam \
+                </dev/null >"$CELERYCAM_LOG" 2>&1 &
+            echo $! | tee -a "$CELERY_PID_FILE"
+            ;;
 
-    pgstopfast)
-        echo '* Stopping postgres fast:'
-        sudo su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA -m fast stop"
-        ;;
+        stop)
+            if [ -f "$CELERY_PID_FILE" ] ; then
+                echo '* Stopping celery workers and celerycam:  '
 
-    *)
-        echo 'Bad command: "'$1'".
-Specify one of: conf, stop, start, pgstart, pgstopfast, apacherestart'
-        ;;
-esac
+                for pid in $(cat "$CELERY_PID_FILE") ; do
+                    echo $pid
+                    kill -15 $pid
+                    while kill -0 $pid ; do sleep 1 ; done
+                done
+            fi
+            ps ax | grep celery
+            ;;
+
+        restart)
+            celery stop
+            celery start
+            ;;
+    esac
+}
+
+
+
+main() {
+    case "$1" in
+        start)
+            postgres start
+            celery start
+            if [ "$2" = dev ] ; then
+                "$SPINDLE_DIR/manage.py" runserver
+            else 
+                apache start            
+            fi
+            ;;
+
+        stop)
+            celery stop
+            apache stop
+            postgres stop
+            ;;
+        
+        postgres)
+            shift
+            postgres "$@"
+            ;;
+
+        apache)
+            shift
+            apache "$@"
+            ;;
+        
+        celery)
+            shift
+            celery "$@"
+            ;;
+
+        *)
+            echo 'Bad command: "'$1'".
+
+Usage: 
+   run_spindle.sh conf | start | stop |
+      postgres (start|stop|stopfast) |
+      apache (start|stop)
+      celery (start|stop|restart)'
+            exit 1
+            ;;
+    esac
+}
+
+
+main "$@"
