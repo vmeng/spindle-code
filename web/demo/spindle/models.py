@@ -22,6 +22,7 @@ from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+import djcelery
 from celery.result import BaseAsyncResult
 
 import xml.etree.ElementTree as ET
@@ -275,10 +276,11 @@ class TranscriptionTask(models.Model):
             self.task_id)
 
     def delete(self, *args, **kwargs):
-        import celery
-        celery_app = celery.Celery()
         if self.task_id:
-            celery_app.control.revoke(self.task_id, terminate=True)
+            try:
+                djcelery.celery.control.revoke(self.task_id, terminate=True)
+            except:
+                pass
         return super(TranscriptionTask, self).delete(*args, **kwargs)
 
     def async_result(self):
