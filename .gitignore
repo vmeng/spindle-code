@@ -8,3 +8,4 @@
 /web/demo/apache/httpd.conf
 /web/conf.sh
 /.dir-locals.el
+/web/celeryev.pid
