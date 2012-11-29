@@ -89,7 +89,7 @@ PUBLISH_TYPES = (('publish_text', '.txt', 'Plain text transcript',
                  ('publish_transcript', '.html', 'HTML transcript',
                   'text/html', RSS_TRANSCRIPT_REL, 'write_html'))
 
-@single_instance_task(name='publish_feed', cache_id=FEED_TASK_ID)
+@single_instance_task(name='spindle.publish.keyword_feed', cache_id=FEED_TASK_ID)
 def publish_feed(debug = False):
     """Republish the incoming RSS feed, adding <category> tags for
     generated keywords and <link> tags to published transcripts."""
@@ -154,7 +154,7 @@ def publish_feed(debug = False):
 
     logger.info('Done')
 
-@single_instance_task(name='publish_all_items', cache_id=ITEMS_TASK_ID)
+@single_instance_task(name='spindle.publish.all_items', cache_id=ITEMS_TASK_ID)
 def publish_all_items(debug = False):
     """Write out published contents for all items, as static files."""
     items = Item.objects.filter(track_count__gt=0).select_related()
@@ -209,7 +209,7 @@ class TranscriptFeed(Rss201rev2Feed):
                                         attrs=dict(rel='alternate',
                                                    href=url))
 
-@single_instance_task(name='publish_exports_feed', cache_id=EXPORT_FEED_TASK_ID)
+@single_instance_task(name='spindle.publish.exports_feed', cache_id=EXPORT_FEED_TASK_ID)
 def publish_exports_feed(debug=False):
     feed = TranscriptFeed(title = "Spindle transcripts",
                           link = "/",

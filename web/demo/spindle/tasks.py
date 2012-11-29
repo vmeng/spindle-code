@@ -17,7 +17,7 @@ SCRAPE_TASK_ID = 'scrape_task_id'
 
 
 # Scrape the RSS feed
-@single_instance_task(cache_id=SCRAPE_TASK_ID, name='spindle_scrape', queue='local')
+@single_instance_task(cache_id=SCRAPE_TASK_ID, name='spindle.scrape', queue='local')
 def scrape():
     current_task.update_progress(.01, 'Listing all URLs in database ...')
 
