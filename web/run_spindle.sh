@@ -8,10 +8,11 @@ else
 fi
 source "$DIR/conf.sh" || exit 1
 
-# Define default SPINDLE_DIR
-if [[ -z "$SPINDLE_DIR" ]] ; then
-    SPINDLE_DIR="$DIR/demo"
-fi
+# Set default values
+: ${SPINDLE_DIR:="$DIR/demo"}
+: ${RABBITMQ_USER:=rabbitmq}
+: ${PGUSER:=postgres}
+: ${APACHECTL:=apachectl}
 
 # Run as "run_spindle.sh conf" to print out configuration
 if [[ "$1" == conf ]] ; then
@@ -84,7 +85,7 @@ apache() {
 
 celery() {
     case "$1" in
-        start)            
+        start) 
             echo '* Starting Sphinx celery worker: '
             nohup "$SPINDLE_DIR/manage.py" celery worker \
                 --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
@@ -113,12 +114,30 @@ celery() {
                     while kill -0 $pid ; do sleep 1 ; done
                 done
             fi
-            ps ax | grep celery
+            celery list
             ;;
 
         restart)
             celery stop
             celery start
+            ;;
+
+        list)
+            ps ax | grep celery
+            ;;
+    esac
+}
+
+rabbitmq() {
+    case "$1" in
+        start)
+            echo '* Starting rabbitmq'
+            sudo -H -u "$RABBITMQ_USER" rabbitmq-server -detached
+            ;;
+
+        stop)
+            echo '* Stopping rabbitmq'
+            sudo -H -u "$RABBITMQ_USER" rabbitmqctl stop
             ;;
     esac
 }
@@ -129,6 +148,7 @@ main() {
     case "$1" in
         start)
             postgres start
+            rabbitmq start
             celery start
             if [ "$2" = dev ] ; then
                 "$SPINDLE_DIR/manage.py" runserver
@@ -140,6 +160,7 @@ main() {
         stop)
             celery stop
             apache stop
+            rabbitmq stop            
             postgres stop
             ;;
         
@@ -158,14 +179,19 @@ main() {
             celery "$@"
             ;;
 
+        rabbitmq)
+            shift
+            rabbitmq "$@"
+            ;;
+
         *)
             echo 'Bad command: "'$1'".
 
 Usage: 
-   run_spindle.sh conf | start | stop |
-      postgres (start|stop|stopfast) |
-      apache (start|stop)
-      celery (start|stop|restart)'
+   run_spindle.sh conf | start | stop
+                  | postgres ( start | stop | stopfast)
+                  | apache ( start | stop )
+                  | celery ( start | stop | restart )'
             exit 1
             ;;
     esac

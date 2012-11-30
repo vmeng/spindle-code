@@ -8,3 +8,5 @@ PGUSER=postgres
 export PGDATA=
 
 APACHECTL=
+
+RABBITMQ_USER=rabbitmq
