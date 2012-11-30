@@ -23,12 +23,15 @@ if [[ "$1" == conf ]] ; then
     echo "PGDATA=$PGDATA"
     echo "PGUSER=$PGUSER"
     echo "APACHECTL=$APACHECTL"
+    echo "RABBITMQ_USER=$RABBITMQ_USER"
+    echo "CELERY_USER=$CELERY_USER"
     exit 0
 fi
 
 # Sanity check
 if [[ -z "$LOG_DIR" || -z "$VIRTUALENV" || -z "$SPINDLE_DIR" || -z "$PGLOG" \
-    || -z "$APACHECTL" || -z "$PGDATA" ]] ; then
+    || -z "$APACHECTL" || -z "$PGDATA" || -z "$PGUSER" || -z "$RABBITMQ_USER" \
+    || -z "$CELERY_USER" ]] ; then
     echo 'Some variables not set. Check conf.sh'.
     exit 1
 fi
@@ -46,17 +49,17 @@ postgres() {
     case "$1" in
         start)
             echo '* Starting postgres:'
-            su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA start"
+            sudo -u "$PGUSER" pg_ctl -l $PGLOG -D $PGDATA start
             ;;
 
         stop)
             echo '* Stopping postgres:'
-            su "$PGUSER" -c "pg_ctl -D $PGDATA stop"
+            sudo -u "$PGUSER" pg_ctl -D $PGDATA stop
             ;;
 
         stopfast)
             echo '* Stopping postgres fast:'
-            su "$PGUSER" -c "pg_ctl -l $PGLOG -D $PGDATA -m fast stop"
+            sudo -u "$PGUSER" pg_ctl -l $PGLOG -D $PGDATA -m fast stop
             ;;
 
         *)
@@ -87,19 +90,22 @@ celery() {
     case "$1" in
         start) 
             echo '* Starting Sphinx celery worker: '
-            nohup "$SPINDLE_DIR/manage.py" celery worker \
+            sudo -u "$CELERY_USER" \
+                nohup "$SPINDLE_DIR/manage.py" celery worker \
                 --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
                 --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
             echo $! | tee "$CELERY_PID_FILE"
 
             echo '* Starting local celery worker:'
-            nohup "$SPINDLE_DIR/manage.py" celery worker \
+            sudo -u "$CELERY_USER" \
+                nohup "$SPINDLE_DIR/manage.py" celery worker \
                 --settings=celery_local_settings --autoreload -Q local,celery -E \
                 --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
             echo $! | tee -a "$CELERY_PID_FILE"
 
             echo '* Starting celerycam monitor:'
-            nohup "$SPINDLE_DIR/manage.py" celerycam \
+            sudo -u "$CELERY_USER" \
+                nohup "$SPINDLE_DIR/manage.py" celerycam \
                 </dev/null >"$CELERYCAM_LOG" 2>&1 &
             echo $! | tee -a "$CELERY_PID_FILE"
             ;;

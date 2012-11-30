@@ -10,3 +10,5 @@ export PGDATA=
 APACHECTL=
 
 RABBITMQ_USER=rabbitmq
+
+CELERY_USER=
