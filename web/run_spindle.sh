@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Find path to this script
 if [[ $0 == /* ]] ; then
@@ -40,7 +40,9 @@ fi
 CELERY_SPHINX_LOG="$LOG_DIR/celery.sphinx.log"
 CELERY_LOCAL_LOG="$LOG_DIR/celery.local.log"
 CELERYCAM_LOG="$LOG_DIR/celerycam.log"
-CELERY_PID_FILE="$LOG_DIR/celery.pid"
+CELERY_SPHINX_PIDFILE="$LOG_DIR/celery.sphinx.pid"
+CELERY_LOCAL_PIDFILE="$LOG_DIR/celery.local.pid"
+CELERYCAM_PIDFILE="$LOG_DIR/celerycam.pid"
 
 # Run in the right virtual environment
 source "$VIRTUALENV/bin/activate" || exit 1
@@ -69,7 +71,7 @@ postgres() {
 }
 
 apache() {
-    case "$1" in 
+    case "$1" in
         start)
             echo '* Starting apache:'
             "$APACHECTL" restart
@@ -88,38 +90,46 @@ apache() {
 
 celery() {
     case "$1" in
-        start) 
-            echo '* Starting Sphinx celery worker: '
+        start)
+            echo '* Starting sphinx celery worker:'
             sudo -u "$CELERY_USER" \
                 nohup "$SPINDLE_DIR/manage.py" celery worker \
                 --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
+                --pidfile="$CELERY_SPHINX_PIDFILE" \
+                --hostname="sphinx.$(hostname)" \
                 --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
-            echo $! | tee "$CELERY_PID_FILE"
 
             echo '* Starting local celery worker:'
             sudo -u "$CELERY_USER" \
                 nohup "$SPINDLE_DIR/manage.py" celery worker \
                 --settings=celery_local_settings --autoreload -Q local,celery -E \
+                --pidfile="$CELERY_LOCAL_PIDFILE" \
+                --hostname="local.$(hostname)" \
                 --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
-            echo $! | tee -a "$CELERY_PID_FILE"
+            cat "$CELERY_LOCAL_PIDFILE"
 
             echo '* Starting celerycam monitor:'
             sudo -u "$CELERY_USER" \
                 nohup "$SPINDLE_DIR/manage.py" celerycam \
+                --pidfile="$CELERYCAM_PIDFILE" \
                 </dev/null >"$CELERYCAM_LOG" 2>&1 &
-            echo $! | tee -a "$CELERY_PID_FILE"
             ;;
 
         stop)
-            if [ -f "$CELERY_PID_FILE" ] ; then
-                echo '* Stopping celery workers and celerycam:  '
+            for pidfile in "$CELERY_SPHINX_PIDFILE" \
+                "$CELERY_LOCAL_PIDFILE" "$CELERYCAM_PIDFILE" ; do
 
-                for pid in $(cat "$CELERY_PID_FILE") ; do
-                    echo $pid
+                if [ -f "$pidfile" ] ; then
+                    pid=$(cat "$pidfile")
+                    printf "* Stopping $pidfile [$pid]..."
+
                     kill -15 $pid
-                    while kill -0 $pid ; do sleep 1 ; done
-                done
-            fi
+                    while kill -0 $pid ; do printf '.' ; sleep 1 ; done
+                    echo
+
+                    rm "$pidfile"
+                fi
+            done
             celery list
             ;;
 
@@ -131,6 +141,9 @@ celery() {
         list)
             ps ax | grep celery
             ;;
+
+        log)
+            tail -f "$CELERY_LOCAL_LOG" "$CELERY_SPHINX_LOG"
     esac
 }
 
@@ -158,18 +171,18 @@ main() {
             celery start
             if [ "$2" = dev ] ; then
                 "$SPINDLE_DIR/manage.py" runserver
-            else 
-                apache start            
+            else
+                apache start
             fi
             ;;
 
         stop)
             celery stop
             apache stop
-            rabbitmq stop            
+            rabbitmq stop
             postgres stop
             ;;
-        
+
         postgres)
             shift
             postgres "$@"
@@ -179,7 +192,7 @@ main() {
             shift
             apache "$@"
             ;;
-        
+
         celery)
             shift
             celery "$@"
@@ -193,7 +206,7 @@ main() {
         *)
             echo 'Bad command: "'$1'".
 
-Usage: 
+Usage:
    run_spindle.sh conf | start | stop
                   | postgres ( start | stop | stopfast)
                   | apache ( start | stop )
