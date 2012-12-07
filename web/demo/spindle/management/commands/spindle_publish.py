@@ -43,7 +43,7 @@ class Command(BaseCommand):
             raise CommandError(u"Bad argument {}".format(what))
 
     def setup_logging(self, verbosity):
-        logger = logging.getLogger('spindle.publish')
+        logger = logging.getLogger('spindle')
         logger.addHandler(logging.StreamHandler(stream=self.stderr))
 
         if verbosity >= 2:
