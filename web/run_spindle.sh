@@ -64,6 +64,10 @@ postgres() {
             sudo -u "$PGUSER" pg_ctl -l $PGLOG -D $PGDATA -m fast stop
             ;;
 
+        log)
+            sudo -u "$PGUSER" tail -f "$PGLOG"
+            ;;
+
         *)
             echo '* Bad command "'$1'". Specify one of "start", "stop", "stopfast"'
             ;;
@@ -208,9 +212,9 @@ main() {
 
 Usage:
    run_spindle.sh conf | start | stop
-                  | postgres ( start | stop | stopfast)
+                  | postgres ( start | stop | stopfast | log)
                   | apache ( start | stop )
-                  | celery ( start | stop | restart )'
+                  | celery ( start | stop | restart | log )'
             exit 1
             ;;
     esac
