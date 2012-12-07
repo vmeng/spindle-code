@@ -3,7 +3,8 @@ from django.core.cache import cache
 from celery import Task, task, current_task
 from celery.utils.log import get_task_logger
 
-logger = get_task_logger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 class SingleInstanceTask(Task):
     """A long-running Celery task which should only execute one instance at a time."""   
@@ -11,7 +12,7 @@ class SingleInstanceTask(Task):
     django_cache_id = None
 
     def apply_async(self, *args, **kwargs):
-        logger.info("** apply_async called args=%s, kwargs=%s **", args, kwargs)
+        logger.debug("** apply_async called args=%s, kwargs=%s **", args, kwargs)
         def make_new_instance():
             task_instance = super(SingleInstanceTask, self).apply_async(*args, **kwargs)
             cache.set(self.django_cache_id, task_instance.task_id, 10 * 60)

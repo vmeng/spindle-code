@@ -2,7 +2,7 @@ from django.core.management.base import NoArgsCommand, CommandError
 import logging
 import spindle.tasks
 
-logger = logging.getLogger('spindle.tasks')
+logger = logging.getLogger('spindle')
 
 class Command(NoArgsCommand):
     help = 'Scrape the RSS feed for new items'
@@ -12,7 +12,7 @@ class Command(NoArgsCommand):
         self.setup_logging(verbosity)
 
         spindle.tasks.scrape()        
-        self.stdout.write('Finished scraping')
+        self.stderr.write('Finished scraping')
 
     def setup_logging(self, verbosity):
         logger.addHandler(logging.StreamHandler(stream=self.stderr))
