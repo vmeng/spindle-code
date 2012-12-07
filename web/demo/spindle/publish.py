@@ -201,13 +201,8 @@ class TranscriptFeed(Rss201rev2Feed):
                                 attrs=dict(scheme=RSS_VISIBILITY_SCHEME,
                                            term=visibility))
 
-        # Add links to original audio and video
-        for url in (item['model_obj'].audio_url,
-                    item['model_obj'].video_url): 
-            if url:
-                handler.addQuickElement('atom:link',
-                                        attrs=dict(rel='alternate',
-                                                   href=url))
+        # Add GUID to reference imported item record
+        handler.addQuickElement('id', item['guid'])        
 
 @single_instance_task(name='spindle.publish.exports_feed', cache_id=EXPORT_FEED_TASK_ID)
 def publish_exports_feed(debug=False):
@@ -221,11 +216,12 @@ def publish_exports_feed(debug=False):
     for index, item in enumerate(items):
         current_task.update_progress(float(index) / total, item.name)
         for export in item_exports(item):
-            feed.add_item(title=item.name,
-                          link=export['href'],
-                          description=export['description'],
-                          visibility=export['visibility'],
-                          model_obj=item)
+            for guid in filter(None, (item.audio_guid, item.video_guid)):
+                feed.add_item(title=item.name, guid=guid,
+                              link=export['href'],
+                              description=export['description'],
+                              visibility=export['visibility'],
+                              model_obj=item)
 
     with open(EXPORTS_RSS_FILENAME, 'wb') as outfile:
         feed.write(outfile, 'utf-8')
