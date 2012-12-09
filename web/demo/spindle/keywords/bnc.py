@@ -1,9 +1,10 @@
 import os
 import cPickle as pickle
 
-# read bnc statistics using cpickle to read binary file 
+# Read BNC word frequency distributions using cpickle
+# Note: bnc.p contains only non stopwords
 BNCfile = os.path.join(os.path.dirname(__file__), "bnc.p")
 fdistBNC = pickle.load( open( BNCfile, "rb" ) )
 
-# total number of words in bnc
-sumBNC = sum(v for k,v in fdistBNC.items())
+# Total number of words in Spoken BNC
+sumBNC = 11606059

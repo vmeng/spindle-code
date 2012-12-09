@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils.feedgenerator import Rss201rev2Feed
 
 from spindle.models import Item, PUBLISH_STATES
-import spindle.keywords.collocations as collocations
+from spindle.keywords.keywords import keywords_and_ngrams
 import spindle.utils
 from spindle.single_instance_task import single_instance_task
 

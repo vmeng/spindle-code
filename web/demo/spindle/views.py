@@ -21,7 +21,7 @@ import celery.task.base
 
 from spindle.models import Item, ArchivedItem, Track, TranscriptionTask
 from spindle.readers import vtt, xmp
-import spindle.keywords.collocations as collocations
+from spindle.keywords.keywords import keywords_and_ngrams
 import spindle.transcribe
 import spindle.tasks
 import spindle.publish
@@ -373,7 +373,7 @@ def keywords(request, track_id):
     track = get_object_or_404(Track, pk=track_id)
     item = track.item
     text = (clip.caption_text for clip in track.clip_set.all())
-    kw, ngrams = collocations.keywords_and_ngrams(text)
+    kw, ngrams = keywords_and_ngrams(text)
 
     def keyword_html(sorted_x):
         tags = ""

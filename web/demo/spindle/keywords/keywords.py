@@ -1,70 +1,80 @@
-import sys, os
-import operator
+#!/usr/local/bin/python
+# -*- coding: utf-8 -*-
+
+
+from collections import defaultdict
+import sys,os
 import math
 from stopwords import stopwords as my_stopwords
 from bnc import fdistBNC, sumBNC
 
-def keywords(input):
-    # Text input statistics
-    # frequency distribution of the text
-    fdistPodcast = {}
+def ngrams(words, n=2):
+    return (tuple(words[i:i+n]) for i in range(0, len(words) - (n - 1)))
 
-    # total number of words in the text
-    sumPodcasts = 0
+def keywords_and_ngrams(input, nKeywords=100, thresholdLL=19, nBigrams=25, thresholdBigrams=2):
 
-    for line in input:
+    fdistText = defaultdict(int)
+    sumText = 0
+    listWords = []
+    
+    listSentences = []
+    if isinstance(input,str):
+        listSentences = [input]
+    else:
+        listSentences = input
+    
+    for line in listSentences:
         for w in line.split():
             w = w.lower()
+            listWords.append(w)
+            sumText = sumText+1
             if w not in my_stopwords and w.isalpha() and len(w) > 2:
-                sumPodcasts = sumPodcasts+1
-                if w not in fdistPodcast.keys():
-                    fdistPodcast[w] = 1
-                else:
-                    fdistPodcast[w] = fdistPodcast[w]+1
+                fdistText[w] = fdistText[w]+1
 
-    # dictionary containing log-likelihood
-    # key: word, value: log-likelihood
     dicLL = {}
 
-    for k, v in fdistPodcast.items():
+    for k, v in fdistText.items():
         a = fdistBNC.get(k)
-        b = fdistPodcast.get(k)
+        b = fdistText.get(k)
+        c = sumBNC
+        d = sumText
         if a == None:
             a = 0
         if b == None:
             b = 0
+        E1 = float(c)*((float(a)+float(b))/ (float(c)+float(d)))
+        E2 = float(d)*((float(a)+float(b))/ (float(c)+float(d)))
+        if a == 0:
+            logaE1 = 0
+        else:
+            logaE1 = math.log(a/E1)  
+        dicLL[k] = float(2* ((a*logaE1)+(b*math.log(b/E2))))
 
-        # rename variables to follow wikipedia equation
-        c = sumBNC
-        d = sumPodcasts
+    sortedLL = sorted(dicLL, key=dicLL.__getitem__, reverse=True)
+    listKeywords = [(k, dicLL[k]) for k in sortedLL if k.isalpha() and dicLL[k] > thresholdLL]
 
-        # ugly but effective, catching exceptions in case of division
-        # by 0 or other issues
-        try:
-            E1 = float(c)*((float(a)+float(b))/ (float(c)+float(d)))
-        except:
-            E1 = 0
+    keywords = dicLL.keys()
+    counts = defaultdict(int)
+    for ng in ngrams(listWords, 2):
+        counts[ng] += 1
 
-        try:
-            E2 = float(d)*((float(a)+float(b))/ (float(c)+float(d)))
-        except:
-            E2 = 0      
+    listBigrams = []
+    for c, ng in sorted(((c, ng) for ng, c in counts.iteritems()), reverse=True):
+        w0 = ng[0]
+        w1 = ng[1]
+        if w0 in keywords and w1 in keywords and c>thresholdBigrams:
+            listBigrams.append((ng, c))
+    return (listKeywords[0:nKeywords], listBigrams[0:nBigrams])
 
-        try:
-            aE1 = math.log(a/E1)
-        except:
-            aE1 = 0
 
-        try:
-            aE2 = math.log(b/E2)
-        except:
-            aE2 = 0   
 
-        try:
-            dicLL[k] = float(2* ((a*aE1)+(b*aE2)))
-        except:
-            dicLL[k] == 0
-
-    # sorting dictionary by value from more likely to less likely
-    sorted_x = sorted(dicLL, key=dicLL.__getitem__, reverse=True)
-    return [(k, dicLL[k]) for k in sorted_x[0:100] if k.isalpha()]
+if __name__=="__main__":
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: python %s <text.txt>\n" % (sys.argv[0],))
+    else:
+        (listK, listB) = keywords_and_ngrams(open(sys.argv[1],"r").readlines(), 100, 19, 25, 2)
+        for k, v in listK:
+            print "%s: %f"% (k,v)
+        print
+        for k, v in listB:
+            print "%s: %d"% (" ".join(k),v)
