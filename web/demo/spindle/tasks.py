@@ -6,7 +6,7 @@ from celery.utils.log import get_task_logger
 import spindle.readers.feedscraper
 import spindle.models
 from spindle.single_instance_task import single_instance_task
-from spindle.publish import publish_feed, publish_all_items, publish_exports_feed
+from spindle.publish import publish_keywords_feed, publish_all_items, publish_exports_feed
 
 import logging
 logger = logging.getLogger(__name__)
@@ -15,7 +15,8 @@ SCRAPE_TASK_ID = 'scrape_task_id'
 
 
 # Scrape the RSS feed
-@single_instance_task(cache_id=SCRAPE_TASK_ID, name='spindle.scrape', queue='local')
+@single_instance_task(cache_id=SCRAPE_TASK_ID, name='spindle.scrape', queue='local',
+                      logger=logger)
 def scrape():
     logger.debug("scrape()")
     scrape.update_progress(.01, 'Listing all URLs in database ...')

@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand, CommandError
 from optparse import make_option
 import logging
 
-from spindle.publish import publish_item, publish_feed, \
+from spindle.publish import publish_item, publish_keywords_feed, \
     publish_exports_feed, publish_all_items
 from spindle.models import Item
 
@@ -28,16 +28,16 @@ class Command(BaseCommand):
             self.stderr.write("** Running in debug mode: only 10 items will be processed **\n")
 
         if what == 'keywords':
-            publish_feed(debug=debug)
+            publish_keywords_feed(debug=debug)
         elif what == 'exports':
             publish_exports_feed(debug=debug)
         elif what == 'all':
             publish_all_items(debug=debug)
-            publish_feed(debug=debug)
+            publish_keywords_feed(debug=debug)
         elif what.isdigit():
             item_id = int(what)
             item = Item.objects.get(pk=item_id)
-            self.stderr.write('Publishing item {}, "{}"\n'.format(item_id, item.name))
+            self.stderr.write(u'Publishing item {}, "{}"\n'.format(item_id, item.name))
             publish_item(item)
         else:
             raise CommandError(u"Bad argument {}".format(what))

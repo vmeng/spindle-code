@@ -53,20 +53,23 @@ SPINDLE_PUBLIC_DIRECTORY = '/Users/jonathan/ox-it/spindle/web/demo/media'
 # URL for published items
 SPINDLE_PUBLIC_URL = 'http://localhost:8000/media/'
 
-# Filename for the re-published RSS feed based on the scraped feed,
-# and incorporating <category> tags for keywords.  The complete RSS
-# URL will be SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME
-SPINDLE_PUBLISH_RSS_FILENAME = 'feed.rss'
+# Filename for the RSS feed of exported plain text and keywords.  The
+# full URL will be SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME and the
+# full filename will be
+# SPINDLE_PUBLIC_DIRECTORY/SPINDLE_KEYWORDS_RSS_NAME .
+SPINDLE_KEYWORDS_RSS_FILENAME = 'keywords.rss'
 
 # Filename for the RSS feed of exported text, html and srt
 SPINDLE_EXPORTS_RSS_FILENAME = 'exports.rss'
+
+# Significance cutoff for keyword inclusion in RSS
+SPINDLE_KEYWORD_LL_THRESHOLD = 40
 
 # Authentication for Koemei (koemei.com)
 SPINDLE_KOEMEI_USERNAME = ''
 SPINDLE_KOEMEI_PASSWORD = ''
 
 # Celery asynchronous task setup
-
 CELERYD_CONCURRENCY = 1
 CELERYD_MAX_TASKS_PER_CHILD = 1
 
@@ -87,6 +90,8 @@ BROKER_URL = 'django://'
 # Cache
 #------------------------------
 
+# A working cache backend MUST be configured for operations involving
+# Celery tasks to work properly.
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',

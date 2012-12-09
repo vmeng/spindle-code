@@ -9,3 +9,6 @@
 /web/conf.sh
 /.dir-locals.el
 /web/celeryev.pid
+\#*#
+/web/demo/.ropeproject
+__temp.py

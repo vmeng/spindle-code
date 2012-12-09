@@ -1,18 +1,15 @@
 from django.core.cache import cache
 
 from celery import Task, task, current_task
-from celery.utils.log import get_task_logger
-
-import logging
-logger = logging.getLogger(__name__)
 
 class SingleInstanceTask(Task):
     """A long-running Celery task which should only execute one instance at a time."""   
     abstract = True
     django_cache_id = None
+    logger = None
 
     def apply_async(self, *args, **kwargs):
-        logger.debug("** apply_async called args=%s, kwargs=%s **", args, kwargs)
+        self.logger.debug("** apply_async called args=%s, kwargs=%s **", args, kwargs)
         def make_new_instance():
             task_instance = super(SingleInstanceTask, self).apply_async(*args, **kwargs)
             cache.set(self.django_cache_id, task_instance.task_id, 10 * 60)
@@ -31,7 +28,7 @@ class SingleInstanceTask(Task):
                 return make_new_instance()
             else:
                 task_instance = self.AsyncResult(task_id)
-                logger.info('Task %s already running as %s', self.name, task_id)
+                self.logger.info('Task %s already running as %s', self.name, task_id)
                 return task_instance
         
     def get_running_instance(self):
@@ -48,15 +45,17 @@ class SingleInstanceTask(Task):
         # Prevent the cache key expiring
         cache.set(self.django_cache_id, self.request.id, 10 * 60)
         
-        logger.info(u'%5.1f%% %s', 100 * progress, message)
+        self.logger.info(u'%5.1f%% %s', 100 * progress, message)
         if not self.request.called_directly:
             self.update_state(state='PROGRESS', meta={ 'progress': progress,
                                                        'message': message })
 
 
-def single_instance_task(cache_id=None, *args, **kwargs):
+def single_instance_task(cache_id=None, logger=None, *args, **kwargs):
     if not cache_id:
         raise Exception("No cache_id provided to single_instance_task decorator")
+    if not logger:
+        raise Exception("No logger provided to single_instance_task decorator")
 
     def decorator(proc):
         # @task(base=SingleInstanceTask, *args, **kwargs)
@@ -66,6 +65,7 @@ def single_instance_task(cache_id=None, *args, **kwargs):
 
         decorated_task = task(base=SingleInstanceTask, *args, **kwargs)(decorated_proc)
         decorated_task.django_cache_id = cache_id
+        decorated_task.logger = logger
         return decorated_task
 
     return decorator

@@ -165,14 +165,14 @@ def scrape(request):
 def publish(request):
     # The tasks
     tasks = {
-        'publish_feed': spindle.publish.publish_feed,
+        'publish_keywords_feed': spindle.publish.publish_keywords_feed,
         'publish_all_items': spindle.publish.publish_all_items,
         'publish_exports_feed': spindle.publish.publish_exports_feed,
     }
 
     task_info = run_tasks(request, tasks)
     template_data = {
-        'rss_url': spindle.publish.RSS_URL,
+        'rss_url': spindle.publish.KEYWORDS_RSS_URL,
         'exports_rss_url': spindle.publish.EXPORTS_RSS_URL
     }
     template_data.update(task_info)
