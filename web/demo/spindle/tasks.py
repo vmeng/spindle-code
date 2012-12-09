@@ -11,14 +11,19 @@ from spindle.publish import publish_keywords_feed, publish_all_items, publish_ex
 import logging
 logger = logging.getLogger(__name__)
 
-SCRAPE_TASK_ID = 'scrape_task_id'
+# Default to transcribing using local Sphinx installation.
+try:
+    DEFAULT_TRANSCRIPTION_ENGINE = settings.SPINDLE_DEFAULT_TRANSCRIPTION_ENGINE
+except:
+    DEFAULT_TRANSCRIPTION_ENGINE = 'spindle.transcribe.sphinx'
 
 
-# Scrape the RSS feed
-@single_instance_task(cache_id=SCRAPE_TASK_ID, name='spindle.scrape', queue='local',
-                      logger=logger)
+#
+# Task: Scrape the RSS feed for new items to pull in and transcribe
+#
+@single_instance_task(cache_id='scrape_task_id', logger=logger,
+                      name='spindle.import_rss', queue='local')
 def scrape():
-    logger.debug("scrape()")
     scrape.update_progress(.01, 'Listing all URLs in database ...')
 
     # Make a hash of all URLs in database
@@ -67,6 +72,11 @@ def scrape():
         scrape.update_progress(.05 + .94 * (float(processed_count) / num_entries), message)
         
     scrape.update_progress(1, 'Added {} new items to database'.format(len(newitems)))
+    
+    if DEFAULT_TRANSCRIPTION_ENGINE:
+        for item in newitems:
+            item.request_transcription(engine_name=DEFAULT_TRANSCRIPTION_ENGINE)
+    
     return newitems
 
 @task

@@ -40,9 +40,13 @@ fi
 CELERY_SPHINX_LOG="$LOG_DIR/celery.sphinx.log"
 CELERY_LOCAL_LOG="$LOG_DIR/celery.local.log"
 CELERYCAM_LOG="$LOG_DIR/celerycam.log"
+CELERY_BEAT_LOG="$LOG_DIR/celery_beat.log"
+
 CELERY_SPHINX_PIDFILE="$LOG_DIR/celery.sphinx.pid"
 CELERY_LOCAL_PIDFILE="$LOG_DIR/celery.local.pid"
 CELERYCAM_PIDFILE="$LOG_DIR/celerycam.pid"
+CELERY_BEAT_PIDFILE="$LOG_DIR/celery_beat.pid"
+
 
 # Run in the right virtual environment
 source "$VIRTUALENV/bin/activate" || exit 1
@@ -90,8 +94,7 @@ apache() {
             ;;
     esac
 }
-
-
+    
 celery() {
     case "$1" in
         start)
@@ -102,6 +105,7 @@ celery() {
                 --pidfile="$CELERY_SPHINX_PIDFILE" \
                 --hostname="sphinx.$(hostname)" \
                 --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
+            echo $!
 
             echo '* Starting local celery worker:'
             sudo -u "$CELERY_USER" \
@@ -110,18 +114,28 @@ celery() {
                 --pidfile="$CELERY_LOCAL_PIDFILE" \
                 --hostname="local.$(hostname)" \
                 --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
-            cat "$CELERY_LOCAL_PIDFILE"
+            echo $!
 
             echo '* Starting celerycam monitor:'
             sudo -u "$CELERY_USER" \
                 nohup "$SPINDLE_DIR/manage.py" celerycam \
                 --pidfile="$CELERYCAM_PIDFILE" \
                 </dev/null >"$CELERYCAM_LOG" 2>&1 &
+            echo $!
+
+            echo '* Starting celerybeat scheduler:'
+            sudo -u "$CELERY_USER" \
+                nohup "$SPINDLE_DIR/manage.py" celery beat \
+                --pidfile="$CELERY_BEAT_PIDFILE" \
+                -S "djcelery.schedulers.DatabaseScheduler" \
+                </dev/null >"$CELERY_BEAT_LOG" 2>&1 &
+            echo $!
             ;;
 
         stop)
             for pidfile in "$CELERY_SPHINX_PIDFILE" \
-                "$CELERY_LOCAL_PIDFILE" "$CELERYCAM_PIDFILE" ; do
+                "$CELERY_LOCAL_PIDFILE" "$CELERYCAM_PIDFILE" \
+                "$CELERY_BEAT_PIDFILE" ; do
 
                 if [ -f "$pidfile" ] ; then
                     pid=$(cat "$pidfile")
@@ -131,7 +145,7 @@ celery() {
                     while kill -0 $pid ; do printf '.' ; sleep 1 ; done
                     echo
 
-                    rm "$pidfile"
+                    rm -f "$pidfile"
                 fi
             done
             celery list
@@ -147,7 +161,7 @@ celery() {
             ;;
 
         log)
-            tail -f "$CELERY_LOCAL_LOG" "$CELERY_SPHINX_LOG"
+            tail -f "$CELERY_LOCAL_LOG" "$CELERY_SPHINX_LOG" "$CELERY_BEAT_LOG"
     esac
 }
 

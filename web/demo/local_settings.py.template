@@ -1,3 +1,5 @@
+# -*- mode: python -*-
+
 import os
 
 DEBUG = True
@@ -37,8 +39,13 @@ EMAIL_SUBJECT_PREFIX = ''
 
 # URL of an RSS feed to scrape audio and video from
 SPINDLE_SCRAPE_RSS_URL = ''
+
+# New items added from RSS will be added to the transcription queue
+# using the transcription engine defined below.  To disable this
+# behavior, set explicitly to None:
+SPINDLE_DEFAULT_TRANSCRIPTION_ENGINE = 'spindle.transcribe.sphinx'
  
-# The absolute path to the Sphinx installation, so that
+# The absolute path to the CMU Sphinx installation, so that
 # SPINDLE_SPHINX_DIRECTORY/bin/Transcriber.jar is the appropriate .jar
 # file
 SPINDLE_SPHINX_DIRECTORY = ''
@@ -47,11 +54,11 @@ SPINDLE_SPHINX_DIRECTORY = ''
 # If this is blank, will use a default temporary file directory
 SPINDLE_SPHINX_OUTPUT_DIRECTORY = ''
 
-# A public directory for published captions and transcirpts
-SPINDLE_PUBLIC_DIRECTORY = '/Users/jonathan/ox-it/spindle/web/demo/media'
+# A public directory for published captions and transcripts
+SPINDLE_PUBLIC_DIRECTORY = ''
 
 # URL for published items
-SPINDLE_PUBLIC_URL = 'http://localhost:8000/media/'
+SPINDLE_PUBLIC_URL = ''
 
 # Filename for the RSS feed of exported plain text and keywords.  The
 # full URL will be SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME and the
@@ -62,20 +69,21 @@ SPINDLE_KEYWORDS_RSS_FILENAME = 'keywords.rss'
 # Filename for the RSS feed of exported text, html and srt
 SPINDLE_EXPORTS_RSS_FILENAME = 'exports.rss'
 
-# Significance cutoff for keyword inclusion in RSS
+# Log-likelihood cutoff below which keywords will be excluded from RSS
+# export
 SPINDLE_KEYWORD_LL_THRESHOLD = 40
 
-# Authentication for Koemei (koemei.com)
+# Authentication for the Koemei speech-to-text service (koemei.com),
+# accessed from Spindle via the "spindle.transcribe.koemei"
+# transcription engine.
 SPINDLE_KOEMEI_USERNAME = ''
 SPINDLE_KOEMEI_PASSWORD = ''
 
-# Celery asynchronous task setup
-CELERYD_CONCURRENCY = 1
-CELERYD_MAX_TASKS_PER_CHILD = 1
-
 # By default, Celery will use the Django database as its message
 # queue. This means that all Celery processes must run on the local
-# machine.
+# machine, and some features (like canceling/removing items from the
+# queue) will be buggy.  Using RabbitMQ as the message queue is more
+# robust.
 BROKER_URL = 'django://'
 
 # Uncomment the lines below to configure RabbitMQ so that
@@ -85,13 +93,18 @@ BROKER_URL = 'django://'
 # BROKER_URL = 'amqp://user:password@localhost/spindle'
 # CELERY_RESULT_BACKEND = 'amqp'
 
+# Use the Django-database-backed crontab scheduler, to allow
+# configuring periodic tasks from the admin interface
+CELERYBEAT_SCHEDULER="djcelery.schedulers.DatabaseScheduler"
 
 #------------------------------
 # Cache
 #------------------------------
 
-# A working cache backend MUST be configured for operations involving
-# Celery tasks to work properly.
+# Spindle stores information about running Celery tasks in the Django
+# cache.  A working cache backend MUST be configured for these
+# operations, including importing and exporting files, to work
+# properly.
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',

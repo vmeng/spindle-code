@@ -20,11 +20,13 @@ class SingleInstanceTask(Task):
             return make_new_instance()
         else:
             task_id = cache.get(self.django_cache_id)
-            # It's rare, but possible, for a previous invocation to
-            # die after setting the cache lock to True but before
-            # registering its task ID. In this case it's fine to start
-            # a new task.
-            if task_id is True:
+            # FIXME: It's possible for a previous invocation of this
+            # task to die after setting the lock to True but before
+            # registering its task ID. In this case it's OK to start a
+            # new task.  It's also possible for the cache ID to be
+            # explicitly set to None -- when?  Possibly when tasks
+            # are run eagerly instead of through the queue?
+            if (not task_id) or (task_id is True):
                 return make_new_instance()
             else:
                 task_instance = self.AsyncResult(task_id)
@@ -33,7 +35,7 @@ class SingleInstanceTask(Task):
         
     def get_running_instance(self):
         task_id = cache.get(self.django_cache_id)
-        if task_id and task_id != True:
+        if task_id and (task_id != True):
             return self.AsyncResult(task_id)
         else:
             return None
@@ -51,14 +53,15 @@ class SingleInstanceTask(Task):
                                                        'message': message })
 
 
+
 def single_instance_task(cache_id=None, logger=None, *args, **kwargs):
+    """Decorator to create single instance tasks from procedures"""
     if not cache_id:
         raise Exception("No cache_id provided to single_instance_task decorator")
     if not logger:
         raise Exception("No logger provided to single_instance_task decorator")
 
     def decorator(proc):
-        # @task(base=SingleInstanceTask, *args, **kwargs)
         def decorated_proc(*args, **kwargs):
             cache.set(cache_id, current_task.request.id, 60 * 60)
             return proc(*args, **kwargs)
