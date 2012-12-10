@@ -119,6 +119,7 @@ celery() {
             echo '* Starting celerycam monitor:'
             sudo -u "$CELERY_USER" \
                 nohup "$SPINDLE_DIR/manage.py" celerycam \
+                --settings=settings \
                 --pidfile="$CELERYCAM_PIDFILE" \
                 </dev/null >"$CELERYCAM_LOG" 2>&1 &
             echo $!
@@ -126,6 +127,7 @@ celery() {
             echo '* Starting celerybeat scheduler:'
             sudo -u "$CELERY_USER" \
                 nohup "$SPINDLE_DIR/manage.py" celery beat \
+                --settings=settings \
                 --pidfile="$CELERY_BEAT_PIDFILE" \
                 -S "djcelery.schedulers.DatabaseScheduler" \
                 </dev/null >"$CELERY_BEAT_LOG" 2>&1 &
