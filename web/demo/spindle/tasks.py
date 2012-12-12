@@ -47,6 +47,7 @@ def scrape():
     newitems = []
     processed_count = 0
     num_entries = rss.count
+    updated_count = 0
     for item in rss.items:
         message = ''
         rss_urls = filter(None, (item.audio_url, item.video_url))
@@ -59,6 +60,7 @@ def scrape():
         else:
             # Update some fields
             message = u"Updating item '{}':".format(item.name)
+            item_changed = False
             existing_item = urlhash[existing_urls[0]]
             for field in ('audio_guid', 'audio_url',
                           'video_guid', 'video_url',
@@ -66,18 +68,18 @@ def scrape():
                 value = getattr(item, field)
                 if value != getattr(existing_item, field):
                     setattr(existing_item, field, value)
+                    item_changed = True
+                    updated_count += 1
                     message += u"\n\t{}='{}'".format(field, value)
-            existing_item.save()
+            if item_changed: existing_item.save()
             processed_count += len(rss_urls)
         scrape.update_progress(.05 + .94 * (float(processed_count) / num_entries), message)
         
-    scrape.update_progress(1, 'Added {} new items to database'.format(len(newitems)))
+    scrape.update_progress(1, 'Finished: {} new items, {} updated items'.format(len(newitems), updated_count))
     
     if DEFAULT_TRANSCRIPTION_ENGINE:
         for item in newitems:
             item.request_transcription(engine_name=DEFAULT_TRANSCRIPTION_ENGINE)
-    
-    return newitems
 
 @task
 def ping():

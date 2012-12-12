@@ -12,20 +12,28 @@ import tempfile
 import subprocess
 import sys
 
-from django.db import models, transaction
-from django.db.models import Q, Count, Sum
+from django.db import models
+from django.db.models import Count
 from django.core import serializers
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.conf import settings
 
 import djcelery
 from celery.result import BaseAsyncResult
 
 import xml.etree.ElementTree as ET
-from pprint import pprint
 
 import spindle.transcribe
+from spindle.keywords.keywords import keywords_and_ngrams
+
+# How significant keywords have to be
+try:
+    LL_THRESHOLD = settings.SPINDLE_KEYWORD_LL_THRESHOLD
+except:
+    LL_THRESHOLD = 40
+
 
 #
 # An item represents a single podcast for transcription. It has a
@@ -33,15 +41,15 @@ import spindle.transcribe
 # URLs, and any number of transcription 'tracks'.
 #
 
-class ItemHash():
-    audio = {}
-    video = {}
-
 # The Item manager class
 class ItemManager(models.Manager):
     def get_query_set(self):
         return super(ItemManager, self).get_query_set() \
             .annotate(track_count=Count('track'))
+ 
+    class ItemHash():
+        audio = {}
+        video = {}
 
     def bulk_fetch(self, select_related=False):
         """Return hashes of all items in the database indexed by URL.
@@ -50,7 +58,7 @@ class ItemManager(models.Manager):
         attributes. Each is a hash from the appropriate type of URLs
         to Item objects.
         """
-        ret = ItemHash()
+        ret = self.ItemHash()
         if select_related:
             query = self.select_related().all()
         else:
@@ -89,9 +97,9 @@ class Item(models.Model):
                                                editable=False)
     updated_by          = models.ForeignKey(User, null=True, blank=True,
                                             editable=False)
-    # added_to_db = models.DateTimeField('Added to database',
-    #                                    auto_now_add=True,
-    #                                    editable=False)
+    added_to_db         = models.DateTimeField('Added to database',
+                                               auto_now_add=True,
+                                               editable=False)
 
     def __unicode__(self):
         return self.name
@@ -358,6 +366,14 @@ class Track(models.Model):
                                           choices=PUBLISHED_STATES,
                                           default='no')
 
+    updated             = models.DateTimeField('Last updated',
+                                               auto_now=True,
+                                               auto_now_add=True,
+                                               editable=False)
+
+    keyword_cache = models.TextField(blank=True, editable=False)
+    keyword_cache_time = models.DateTimeField(blank=True, null=True, editable=False)
+
     def __unicode__(self):
         return u'{} ({}, {})'.format(
             self.item.name, self.kind, self.lang)
@@ -440,6 +456,24 @@ class Track(models.Model):
     def write_vtt(self, outfile):
         import spindle.writers.vtt
         spindle.writers.vtt.write(self.clip_set.all(), outfile)
+
+    @property
+    def keywords(self):
+        if self.keyword_cache_time and self.keyword_cache_time < self.updated:
+            return self.keyword_cache.split(';')
+        else:
+            text = (clip.caption_text for clip in self.clip_set.all())
+            keywords, ngrams = keywords_and_ngrams(text)
+            keywords = map(lambda kw_ll: kw_ll[0],
+                           filter(lambda kw_ll: kw_ll[1] > LL_THRESHOLD, keywords))
+            ngrams = map(lambda ng: u' '.join(ng[0]), ngrams)
+
+            keywords.extend(ngrams)
+            self.keyword_cache = u';'.join(keywords)
+            self.keyword_cache_time = timezone.now()
+            self.save()
+            return keywords
+
 
 #
 # Each track may have several speakers.

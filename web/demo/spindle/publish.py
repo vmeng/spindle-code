@@ -53,12 +53,6 @@ EXPORTS_RSS_FILENAME = os.path.join(settings.SPINDLE_PUBLIC_DIRECTORY,
 KEYWORDS_RSS_URL = urlparse.urljoin(PUBLIC_URL, settings.SPINDLE_KEYWORDS_RSS_FILENAME)
 EXPORTS_RSS_URL = urlparse.urljoin(PUBLIC_URL,
                                    settings.SPINDLE_EXPORTS_RSS_FILENAME)
-
-# How significant keywords have to be
-try:
-    LL_THRESHOLD = settings.SPINDLE_KEYWORD_LL_THRESHOLD
-except:
-    LL_THRESHOLD = 40
     
 # A description of one type of exported transcript to publish: HTML,
 # Text, SRT, etc.
@@ -175,9 +169,6 @@ class KeywordFeed(SpindleFeed):
         for keyword in entry['keywords']:
             handler.addQuickElement('category', attrs={'term': keyword})
 
-        for ngram in entry['ngrams']:
-            handler.addQuickElement('category', attrs={'term': ngram})
-
 @single_instance_task(name='spindle.publish.keywords_feed',
                       cache_id='keyword_field_task_id',
                       logger=logger)
@@ -200,16 +191,6 @@ def publish_keywords_feed(debug=False):
         for export in filter(lambda export: export.mime_type == 'text/plain',
                              item_exports(item)):
 
-            # Compute keywords
-            keywords, ngrams = track_keywords(export.track)
-            keywords = map(lambda kw_ll: kw_ll[0],
-                           filter(lambda kw_ll: kw_ll[1] > LL_THRESHOLD, keywords))
-            ngrams = map(lambda ng: u' '.join(ng[0]), ngrams)
-
-            logger.info('\t%d keywords, %d ngrams', len(keywords), len(ngrams))
-            logger.debug('%s', '\tKeywords:' + u', '.join(keywords))
-            logger.debug('%s', '\tNgrams:' + u', '.join(ngrams))
-
             # Add an entry for both the audio and video versions. This
             # is so our Drupal system, which treats the audio and
             # video as separate nodes, can import transcript
@@ -219,7 +200,7 @@ def publish_keywords_feed(debug=False):
                               link=export.href,
                               description=export.description,
                               visibility=export.visibility,
-                              keywords=keywords, ngrams=ngrams)
+                              keywords=export.track.keywords)
 
     with open(KEYWORDS_RSS_FILENAME, 'wb') as outfile:
         feed.write(outfile, 'utf-8')
@@ -296,13 +277,6 @@ def item_exports(item):
                              visibility = visibility,
                              write = getattr(track, export_type.write_method),
                              track = track)
-
-
-def track_keywords(track):
-    """Compute keywords and n-grams for a track."""
-    text = (clip.caption_text
-            for clip in track.clip_set.all())
-    return keywords_and_ngrams(text)
 
 def item_basename(item):
     """Return a base filename to use for 'item', based on its audio or
