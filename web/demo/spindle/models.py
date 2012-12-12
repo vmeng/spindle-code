@@ -6,8 +6,6 @@ Speaker -- each clip may have a named speaker
 ArchivedItem -- for versioning items (currently broken)"""
 
 
-import os
-import datetime
 import operator
 import StringIO
 import tempfile
@@ -17,7 +15,6 @@ import sys
 from django.db import models, transaction
 from django.db.models import Q, Count, Sum
 from django.core import serializers
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -28,7 +25,6 @@ from celery.result import BaseAsyncResult
 import xml.etree.ElementTree as ET
 from pprint import pprint
 
-from spindle.utils import mkdir_p
 import spindle.transcribe
 
 #
@@ -232,25 +228,26 @@ class ArchivedItem(models.Model):
             if previous_versions:
                 old_version = previous_versions[0]
 
-        tmpfile_1 = tempfile.NamedTemporaryFile()
-        self.write_diffable_text(tmpfile_1)
+        with tempfile.NamedTemporaryFile() as tmpfile_1, \
+             tempfile.NamedTemporaryFile() if old_version is not None else open("/dev/null") as tmpfile_2, \
+             tempfile.TemporaryFile() as diff_file, \
+             tempfile.TemporaryFile() as error_file:
+        
+            self.write_diffable_text(tmpfile_1)
 
-        if old_version is None:       # No previous version: diff with /dev/null
-            tmpfile_2 = open("/dev/null")
-        else:
-            tmpfile_2 = tempfile.NamedTemporaryFile()
-            old_version.write_diffable_text(tmpfile_2)
+            if old_version is not None:
+                old_version.write_diffable_text(tmpfile_2)
 
-        diff_file = tempfile.NamedTemporaryFile()
-        errcode = subprocess.call([
-                'diff', '-u',
-                tmpfile_2.name,
-                tmpfile_1.name],
-                                  stdout=diff_file,
-                                  stderr=sys.stderr)
+            errcode = subprocess.call(
+                ['diff', '-u', tmpfile_2.name, tmpfile_1.name],
+                stdout=diff_file,
+                stderr=error_file)
 
-        diff_file.seek(0, 0)
-        for line in diff_file: yield line
+            diff_file.seek(0, 0)
+            error_file.seek(0, 0)
+
+            for line in error_file: sys.stderr.write(line)
+            return list(diff_file)
 
     def revert(self):
         self.item.track_set.all().delete()
@@ -373,7 +370,7 @@ class Track(models.Model):
     @classmethod
     def empty(cls, item, cliplength=4.0, **kwargs):
         if not item.duration:
-            raise Error(u"Unknown or zero item duration for item {}".format(item))
+            raise Exception(u"Unknown or zero item duration for item {}".format(item))
 
         track = Track(item=item, **kwargs)
         intime = 0.0
@@ -409,7 +406,6 @@ class Track(models.Model):
 
     # Export as HTML
     def write_html(self, outfile):
-        from django.template.loader import get_template
         transcript = ET.Element('div')
         speaker_id = None
 
