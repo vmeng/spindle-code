@@ -6,7 +6,7 @@ from celery.utils.log import get_task_logger
 import spindle.readers.feedscraper
 import spindle.models
 from spindle.single_instance_task import single_instance_task
-from spindle.publish import publish_keywords_feed, publish_all_items, publish_exports_feed
+from spindle.publish import publish_all_items, publish_exports_feed
 
 import logging
 logger = logging.getLogger(__name__)

@@ -15,27 +15,6 @@
   <form method='post' action="">
     {% csrf_token %} 
 
-    <h2>Publish RSS of text and keywords</h2>
-    <div class='well'>
-      <p>Click below to publish an RSS feed of plain text transcripts
-      and extracted keywords at
-        <pre><a href="{{ rss_url }}">{{ rss_url }}</a></pre>
-      </p>
-      {% if not publish_keywords_feed.progress_bar %}
-        <p>Publishing the RSS feed may take several minutes.</p>
-        <input class='btn' type='submit' value='Publish RSS' name='publish_keywords_feed' />
-      {% else %}
-        <p>Exporting in progress...</p>
-        <div class="progress progress-striped active"
-             style="width: 10em"
-             data-task-id="{{ publish_keywords_feed.task.id }}">
-             <div class="bar"
-                  style="width: {{ publish_keywords_feed.progress }}%"></div>
-        </div>
-        <div class="progress-message"></div> 
-      {% endif %} 
-    </div>
-
     <h2>Publish transcripts</h2>
     <div class='well'>
       <p>Click below to export all item transcripts marked for publishing.</p> 
@@ -61,7 +40,7 @@
 
     <h2>Publish RSS of exports</h2>
     <div class='well'>
-      <p>Click below to export an RSS of all published transcripts at
+      <p>Click below to export an RSS of published transcripts and keywords at
         <pre><a href="{{ exports_rss_url }}">{{ exports_rss_url }}</a></pre>
       </p>
 
