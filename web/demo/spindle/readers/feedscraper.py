@@ -16,6 +16,7 @@ def rss_to_records(d):
             dct['duration'] = int(entry['duration'])
             dct['name'] = entry['title']
             timestamp = mktime(entry['published_parsed'])
+            # FIXME: Is this timezone arithmetic accurate??
             dct['published'] = datetime.fromtimestamp(timestamp).replace(tzinfo=utc)
             dct['guid'] = entry['id']
             dct['licence_long_string'] = entry['licence_long_string']

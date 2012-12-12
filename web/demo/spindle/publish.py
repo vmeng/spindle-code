@@ -4,6 +4,7 @@ import os
 import urlparse
 import logging
 from collections import namedtuple
+import time
 
 from django.conf import settings
 from django.utils.feedgenerator import Rss201rev2Feed
@@ -128,13 +129,27 @@ def publish_all_items(debug = False):
 
 def publish_item(item):
     """Write out all exported transcripts for 'item' as static files."""
+    item_updated = time.mktime(item.updated.timetuple())
     for export in item_exports(item):
+        track_updated = time.mktime(export.track.updated.timetuple())
         if export.visibility in PUBLISH_STATES:
-            spindle.utils.mkdir_p(os.path.dirname(export.path))
+            dirname = os.path.dirname(export.path)
+            if not os.path.isdir(dirname):
+                spindle.utils.mkdir_p(dirname)
 
-            with open(export.path, 'wb') as outfile:
-                export.write(outfile)
-                logger.info(u'\twrote "%s"', export.path)
+            needs_export = False
+            if not os.path.exists(export.path):
+                needs_export = True
+            else:
+                file_updated = os.path.getmtime(export.path)
+                if track_updated > file_updated or item_updated > file_updated:
+                    needs_export = True
+
+            if needs_export:
+                with open(export.path, 'wb') as outfile:
+                    export.write(outfile)
+                    logger.info(u'\twrote "%s"', export.path)
+
 
 
 #
