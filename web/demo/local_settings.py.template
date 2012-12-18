@@ -42,7 +42,7 @@ SPINDLE_SCRAPE_RSS_URL = ''
 
 # New items added from RSS will be added to the transcription queue
 # using the transcription engine defined below.  To disable this
-# behavior, set explicitly to None:
+# behavior, set it explicitly to None:
 SPINDLE_DEFAULT_TRANSCRIPTION_ENGINE = 'spindle.transcribe.sphinx'
  
 # The absolute path to the CMU Sphinx installation, so that
@@ -60,13 +60,7 @@ SPINDLE_PUBLIC_DIRECTORY = ''
 # URL for published items
 SPINDLE_PUBLIC_URL = ''
 
-# Filename for the RSS feed of exported plain text and keywords.  The
-# full URL will be SPINDLE_PUBLIC_URL/SPINDLE_PUBLISH_RSS_NAME and the
-# full filename will be
-# SPINDLE_PUBLIC_DIRECTORY/SPINDLE_KEYWORDS_RSS_NAME .
-SPINDLE_KEYWORDS_RSS_FILENAME = 'keywords.rss'
-
-# Filename for the RSS feed of exported text, html and srt
+# Filename for the RSS feed of exported items
 SPINDLE_EXPORTS_RSS_FILENAME = 'exports.rss'
 
 # Log-likelihood cutoff below which keywords will be excluded from RSS
@@ -79,32 +73,72 @@ SPINDLE_KEYWORD_LL_THRESHOLD = 40
 SPINDLE_KOEMEI_USERNAME = ''
 SPINDLE_KOEMEI_PASSWORD = ''
 
+#----------------------------------------
+# Celery configuration options
+#----------------------------------------
+
+# Spindle uses the Celery task queue framework heavily for offloading
+# long-running tasks like importing and exporting files and running
+# speech-to-text transcriptions.  See http://celeryproject.org/.  The
+# default configuration given here should work, but it can be
+# improved.
+
 # By default, Celery will use the Django database as its message
-# queue. This means that all Celery processes must run on the local
-# machine, and some features (like canceling/removing items from the
-# queue) will be buggy.  Using RabbitMQ as the message queue is more
-# robust.
+# queue. This works OK for testing, but some operations like
+# canceling/removing items from the queue will be buggy.  Using
+# RabbitMQ as the message queue is more robust: see below.
 BROKER_URL = 'django://'
 
-# Uncomment the lines below to configure RabbitMQ so that
-# transcription tasks can run distributed over the network.  This will
-# require installing RabbitMQ and additional configuration steps.
+# Uncomment and edit the line below to have Celery use RabbitMQ
+# (http://www.rabbitmq.com) as its messaging system.  The
+# "setup_rabbitmq.sh" in spindle/web may help with configuring
+# RabbitMQ for Celery.
 
 # BROKER_URL = 'amqp://user:password@localhost/spindle'
-# CELERY_RESULT_BACKEND = 'amqp'
 
-# Use the Django-database-backed crontab scheduler, to allow
-# configuring periodic tasks from the admin interface
+# If BROKER_URL is not left as the default 'django://', you must also
+# configure a Celery result backend in order to monitor the status of
+# running tasks.  See the celery documentation for information on the
+# different options.  Using the same database as Django uses (the
+# setup commented out below) seems to work fine.  Using the RabbitMQ
+# message queue for results does not work well!
+
+# Uncommment these lines to use the Django database for Celery
+# result status.
+
+# def dburi_from_config(database='default'):
+#     conf = DATABASES[database]
+#     engine = conf['ENGINE'].split('.')[-1]
+#     if engine.startswith('sqlite'):
+#         return 'sqlite://' + conf['NAME']
+#     else:
+#         if engine.startswith('postgres'): engine='postgresql'
+#         if conf['HOST'] == '':
+#             host = 'localhost'
+#         else:
+#             host = conf['HOST']
+#         return u'{engine}://{user}:{pass}@{host}/{database}'.format(
+#             engine = engine, user = conf['USER'], pass=conf['PASSWORD'],
+#             host = host, database = conf['NAME'])
+
+# CELERY_RESULT_BACKEND = 'database'
+# CELERY_RESULT_DBURI = dburi_from_config()        
+    
+
+# Settings below this line should not need changing.
+
+# Enable the Django-database-backed crontab scheduler, so that
+# periodic tasks like feed importing can be configured from the Django
+# admin interface.
 CELERYBEAT_SCHEDULER="djcelery.schedulers.DatabaseScheduler"
 
-#------------------------------
-# Cache
-#------------------------------
-
 # Spindle stores information about running Celery tasks in the Django
-# cache.  A working cache backend MUST be configured for these
+# cache.  A working cache backend must be configured for these
 # operations, including importing and exporting files, to work
-# properly.
+# properly.  The following setup should work fine without changes.
+# When creating the database, you need to run "manage.py
+# createcachetable django_cache_table" to set it up.
+# 
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.db.DatabaseCache',

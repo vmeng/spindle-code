@@ -7,8 +7,7 @@ echo "* Creating 'spindle' vhost"
 rabbitmqctl create_vhost spindle || exit 1
 
 echo "* Creating 'spindle' user"
-printf "Enter password: "
-read -s pw
+read -p "Enter password: " -s pw
 
 rabbitmqctl add_user spindle "$pw" || exit 1
 
