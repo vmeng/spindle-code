@@ -19,7 +19,8 @@ def rss_to_records(d):
             # FIXME: Is this timezone arithmetic accurate??
             dct['published'] = datetime.fromtimestamp(timestamp).replace(tzinfo=utc)
             dct['guid'] = entry['id']
-            dct['licence_long_string'] = entry['licence_long_string']
+            if 'licence_long_string' in entry:
+                dct['licence_long_string'] = entry['licence_long_string']
             
             for link in entry.links:
                 if 'shorttype' in link:
@@ -77,7 +78,7 @@ def records_to_items(items):
             if item is None:
                 dct = dict((field, record[field])
                            for field in record
-                           if field not in ('url', 'guid', 'type', 'guid'))
+                           if field not in ('url', 'guid', 'type'))
                 item = Item(**dct)
 
             if record['type'] == 'audio':
