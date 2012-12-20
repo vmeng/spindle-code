@@ -95,67 +95,120 @@ apache() {
     esac
 }
     
+celery_start() {
+    for arg in "$@" ; do
+        case "$arg" in
+            sphinx)
+                echo '* Starting sphinx celery worker:'
+                sudo -u "$CELERY_USER" \
+                    nohup "$SPINDLE_DIR/manage.py" celery worker \
+                    --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
+                    --pidfile="$CELERY_SPHINX_PIDFILE" \
+                    --hostname="sphinx.$(hostname)" \
+                    --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
+                echo $!
+                ;;
+
+            local)
+                echo '* Starting local celery worker:'
+                sudo -u "$CELERY_USER" \
+                    nohup "$SPINDLE_DIR/manage.py" celery worker \
+                    --settings=celery_local_settings --autoreload -Q local,celery -E \
+                    --pidfile="$CELERY_LOCAL_PIDFILE" \
+                    --hostname="local.$(hostname)" \
+                    --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
+                echo $!
+                ;;
+
+
+            cam)
+                echo '* Starting celerycam monitor:'
+                sudo -u "$CELERY_USER" \
+                    nohup "$SPINDLE_DIR/manage.py" celerycam \
+                    --settings=settings \
+                    --pidfile="$CELERYCAM_PIDFILE" \
+                    </dev/null >"$CELERYCAM_LOG" 2>&1 &
+                echo $!
+                ;;
+            
+            beat)
+                echo '* Starting celerybeat scheduler:'
+                sudo -u "$CELERY_USER" \
+                    nohup "$SPINDLE_DIR/manage.py" celery beat \
+                    --settings=settings \
+                    --pidfile="$CELERY_BEAT_PIDFILE" \
+                    -S "djcelery.schedulers.DatabaseScheduler" \
+                    </dev/null >"$CELERY_BEAT_LOG" 2>&1 &
+                echo $!
+                ;;
+
+            *)
+                echo "Bad argument: celery start $1"
+                exit 1
+                ;;
+        esac
+    done
+}
+
+celery_stop() {
+    for arg in "$@" ; do 
+        case "$arg" in
+            sphinx) pidfile="$CELERY_SPHINX_PIDFILE" ;;
+            local) pidfile="$CELERY_LOCAL_PIDFILE" ;;
+            cam) pidfile="$CELERYCAM_PIDFILE" ;;
+            beat) pidfile="$CELERY_BEAT_PIDFILE" ;;
+            *)
+                echo "Bad argument: celery stop $1"
+                exit 1
+                ;;
+        esac
+
+        if [ -f "$pidfile" ] ; then
+            pid=$(cat "$pidfile")
+            printf "* Stopping $pidfile [$pid]..."
+            
+            if [ ! -z "$stop_fast" ] ; then
+                kill -9 $pid
+            else
+                kill -15 $pid
+            fi
+
+            while kill -0 $pid ; do printf '.' ; sleep 1 ; done
+            echo
+
+            rm -f "$pidfile"
+        fi
+    done
+}
+
 celery() {
     case "$1" in
         start)
-            echo '* Starting sphinx celery worker:'
-            sudo -u "$CELERY_USER" \
-                nohup "$SPINDLE_DIR/manage.py" celery worker \
-                --settings=celery_sphinx_settings --autoreload -Q sphinx -E \
-                --pidfile="$CELERY_SPHINX_PIDFILE" \
-                --hostname="sphinx.$(hostname)" \
-                --loglevel=info </dev/null >"$CELERY_SPHINX_LOG" 2>&1 &
-            echo $!
-
-            echo '* Starting local celery worker:'
-            sudo -u "$CELERY_USER" \
-                nohup "$SPINDLE_DIR/manage.py" celery worker \
-                --settings=celery_local_settings --autoreload -Q local,celery -E \
-                --pidfile="$CELERY_LOCAL_PIDFILE" \
-                --hostname="local.$(hostname)" \
-                --loglevel=info </dev/null >"$CELERY_LOCAL_LOG" 2>&1 &
-            echo $!
-
-            echo '* Starting celerycam monitor:'
-            sudo -u "$CELERY_USER" \
-                nohup "$SPINDLE_DIR/manage.py" celerycam \
-                --settings=settings \
-                --pidfile="$CELERYCAM_PIDFILE" \
-                </dev/null >"$CELERYCAM_LOG" 2>&1 &
-            echo $!
-
-            echo '* Starting celerybeat scheduler:'
-            sudo -u "$CELERY_USER" \
-                nohup "$SPINDLE_DIR/manage.py" celery beat \
-                --settings=settings \
-                --pidfile="$CELERY_BEAT_PIDFILE" \
-                -S "djcelery.schedulers.DatabaseScheduler" \
-                </dev/null >"$CELERY_BEAT_LOG" 2>&1 &
-            echo $!
+            if [ ! -z "$2" ] ; then
+                shift
+                celery_start "$@"
+            else 
+                celery_start sphinx local cam beat
+            fi
             ;;
-
+        
         stop)
-            for pidfile in "$CELERY_SPHINX_PIDFILE" \
-                "$CELERY_LOCAL_PIDFILE" "$CELERYCAM_PIDFILE" \
-                "$CELERY_BEAT_PIDFILE" ; do
-
-                if [ -f "$pidfile" ] ; then
-                    pid=$(cat "$pidfile")
-                    printf "* Stopping $pidfile [$pid]..."
-
-                    kill -15 $pid
-                    while kill -0 $pid ; do printf '.' ; sleep 1 ; done
-                    echo
-
-                    rm -f "$pidfile"
-                fi
-            done
-            celery list
+            if [ "$2" = --fast ] ; then
+                shift
+                stop_fast=yes
+            fi
+            if [ ! -z "$2" ] ; then
+                shift
+                celery_stop "$@"
+            else 
+                celery_stop sphinx local cam beat
+                celery list
+            fi
             ;;
 
         restart)
-            celery stop
-            celery start
+            celery stop "$@"
+            celery start "$@"
             ;;
 
         list)
