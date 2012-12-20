@@ -167,11 +167,13 @@ def publish(request):
     tasks = {
         'publish_all_items': spindle.publish.publish_all_items,
         'publish_exports_feed': spindle.publish.publish_exports_feed,
+        'publish_fulltext_feed': spindle.publish.publish_fulltext_feed,
     }
 
     task_info = run_tasks(request, tasks)
     template_data = {
-        'exports_rss_url': spindle.publish.EXPORTS_RSS_URL
+        'exports_rss_url': spindle.publish.EXPORTS_RSS_URL,
+        'exports_fulltext_url': spindle.publish.FULLTEXT_RSS_URL,
     }
     template_data.update(task_info)
     return render(request, 'spindle/publish.html', template_data)

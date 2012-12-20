@@ -45,7 +45,7 @@
       </p>
 
       {% if not publish_exports_feed.progress_bar %}
-        <input class='btn' type='submit' value='Publish transcripts' name='publish_exports_feed' />
+        <input class='btn' type='submit' value='Publish RSS' name='publish_exports_feed' />
       {% else %}
         <p>Exporting in progress...</p>
         <div class="progress progress-striped active"
@@ -53,6 +53,26 @@
              data-task-id="{{ publish_exports_feed.task.id }}">
              <div class="bar"
                   style="width: {{ publish_exports_feed.progress }}%"></div>
+        </div>
+        <div class="progress-message"></div> 
+      {% endif %} 
+    </div>
+
+    <h2>Publish Fulltext RSS</h2>
+    <div class='well'>
+      <p>Click below to export an RSS with the full plaintext of published transcripts at
+        <pre><a href="{{ exports_fulltext_url }}">{{ exports_fulltext_url }}</a></pre>
+      </p>
+
+      {% if not publish_fulltext_feed.progress_bar %}
+        <input class='btn' type='submit' value='Publish Fulltext RSS' name='publish_fulltext_feed' />
+      {% else %}
+        <p>Exporting in progress...</p>
+        <div class="progress progress-striped active"
+             style="width: 10em"
+             data-task-id="{{ publish_fulltext_feed.task.id }}">
+             <div class="bar"
+                  style="width: {{ publish_fulltext_feed.progress }}%"></div>
         </div>
         <div class="progress-message"></div> 
       {% endif %} 

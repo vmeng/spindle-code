@@ -63,6 +63,9 @@ SPINDLE_PUBLIC_URL = ''
 # Filename for the RSS feed of exported items
 SPINDLE_EXPORTS_RSS_FILENAME = 'exports.rss'
 
+# Filename for the RSS feed of full plaintext
+SPINDLE_FULLTEXT_RSS_FILENAME = 'fulltext.rss'
+
 # Log-likelihood cutoff below which keywords will be excluded from RSS
 # export
 SPINDLE_KEYWORD_LL_THRESHOLD = 40
