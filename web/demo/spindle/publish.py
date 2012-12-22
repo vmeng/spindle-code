@@ -374,6 +374,7 @@ def publish_exports_feed(debug=False):
                               link=export.href,
                               unique_id=export.guid,
                               description=export.description,
+                              pubdate=export.track.updated,
 
                               enclosure=export.as_enclosure,
                               spindle_export=export)
@@ -433,6 +434,7 @@ def publish_fulltext_feed(debug=False):
                               link=export.href,
                               unique_id=export.guid,
                               description=export.description,
+                              pubdate=export.track.updated,
 
                               enclosure=export.as_enclosure,
                               spindle_export=export)
