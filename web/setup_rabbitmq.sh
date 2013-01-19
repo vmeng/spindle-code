@@ -4,7 +4,7 @@ echo '* Checking for rabbitmq ...'
 rabbitmqctl status || exit 1
 
 echo "* Creating 'spindle' vhost"
-rabbitmqctl create_vhost spindle || exit 1
+rabbitmqctl add_vhost spindle || exit 1
 
 echo "* Creating 'spindle' user"
 read -p "Enter password: " -s pw
