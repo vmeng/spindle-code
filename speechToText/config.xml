@@ -318,6 +318,10 @@
         <property name="useAddTable" value="true"/>
     </component>
     
+    <component name="confidenceScorer"
+        type="edu.cmu.sphinx.result.MAPConfidenceScorer">
+        <property name="languageWeight" value="${languageWeight}"/>
+    </component>
 </config>
 
 
